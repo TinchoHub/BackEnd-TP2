@@ -1,17 +1,20 @@
 {
-  "name": "tp1",
+  "name": "tp2",
   "version": "1.0.0",
   "description": "",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "dev": "nodemon app.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
+    "dotenv": "^18.0.6",
     "express": "^5.2.1",
+    "mongoose": "^9.11.0",
     "nodemon": "^3.1.14",
     "pug": "^3.0.4"
   }
