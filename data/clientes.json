@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "nombre": "Carlos",
+    "apellido": "Gómez",
+    "telefono": "3515551234",
+    "email": "carlos@gmail.com"
+  },
+  {
+    "id": 2,
+    "nombre": "María",
+    "apellido": "López",
+    "telefono": "3514445678",
+    "email": "maria@gmail.com"
+  },
+  {
+    "id": 3,
+    "nombre": "Juan",
+    "apellido": "Perez",
+    "telefono": "1145454545",
+    "email": "juan@perez.com"
+  },
+  {
+    "id": 4,
+    "nombre": "Carlos",
+    "apellido": "Perez",
+    "telefono": "1144552233",
+    "email": "6666@pepe.com"
+  },
+  {
+    "id": 5,
+    "nombre": "juan",
+    "apellido": "perez",
+    "telefono": "45466666",
+    "email": "pepe@mail.com"
+  }
+]

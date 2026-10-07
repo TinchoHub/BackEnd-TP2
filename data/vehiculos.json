@@ -1,0 +1,51 @@
+[
+  {
+    "id": 1,
+    "patente": "AB123CD",
+    "marca": "Ford",
+    "modelo": "Fiesta",
+    "clienteId": 1
+  },
+  {
+    "id": 2,
+    "patente": "XY987ZZ",
+    "marca": "Chevrolet",
+    "modelo": "Corsa",
+    "clienteId": 1
+  },
+  {
+    "id": 3,
+    "patente": "AA111OK",
+    "marca": "Chevrolet",
+    "modelo": "Camaro",
+    "clienteId": 4
+  },
+  {
+    "id": 4,
+    "patente": "a244lah",
+    "marca": "Honda",
+    "modelo": "2026",
+    "clienteId": 5
+  },
+  {
+    "id": 5,
+    "patente": "XCV234",
+    "marca": "Honda",
+    "modelo": "Civic Advance Hibrid",
+    "clienteId": 8
+  },
+  {
+    "id": 6,
+    "patente": "VTU567",
+    "marca": "HYUNDAI",
+    "modelo": "Nueva Creta SUV",
+    "clienteId": 5
+  },
+  {
+    "id": 7,
+    "patente": "YUT",
+    "marca": "HONDA",
+    "modelo": "Civic 2.0",
+    "clienteId": 9
+  }
+]

@@ -1,0 +1,49 @@
+extends layout
+
+block contenido
+
+  section.hero
+
+    .hero__overlay
+
+      p.hero__pre Bienvenido a
+
+      h1
+        span AUTO
+        strong BOX
+
+      p Gestioná clientes, vehículos y turnos de forma simple, rápida y eficiente.
+
+  section.acciones
+
+    a.accion-card(href="/clientes/nuevo")
+      .accion-card__icono 👤
+      div
+        h3 Nuevo cliente
+        p Registrar cliente
+
+    a.accion-card(href="/vehiculos/nuevo")
+      .accion-card__icono 🚗
+      div
+        h3 Nuevo vehículo
+        p Registrar vehículo
+
+    a.accion-card(href="/turnos/nuevo")
+      .accion-card__icono 📅
+      div
+        h3 Nuevo turno
+        p Agendar turno
+
+  section.estadisticas
+
+    article.stat-card
+      span.stat-numero= totalClientes
+      p Clientes registrados
+
+    article.stat-card
+      span.stat-numero= totalVehiculos
+      p Vehículos registrados
+
+    article.stat-card
+      span.stat-numero= totalTurnos
+      p Turnos registrados

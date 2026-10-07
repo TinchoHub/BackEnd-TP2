@@ -1,0 +1,71 @@
+extends layout
+
+block contenido
+
+  h2 Nuevo turno
+
+  p Complete los datos para agendar un turno.
+
+  form(action="/turnos" method="POST")
+
+    .campo
+      label(for="clienteId") Cliente
+
+      select(
+        id="clienteId"
+        name="clienteId"
+        required
+      )
+        option(value="" disabled selected) Seleccione un cliente
+
+        each cliente in clientes
+          option(value=cliente.id) #{cliente.nombre} #{cliente.apellido}
+
+    .campo
+      label(for="vehiculoId") Vehículo
+
+      select(
+        id="vehiculoId"
+        name="vehiculoId"
+        required
+        disabled
+      )
+        option(value="" selected) Primero seleccione un cliente
+
+        each vehiculo in vehiculos
+          option(
+            value=vehiculo.id
+            data-cliente-id=vehiculo.clienteId
+          ) #{vehiculo.patente} - #{vehiculo.marca} #{vehiculo.modelo}
+
+    .campo
+      label(for="fecha") Fecha
+      input(
+        type="date"
+        id="fecha"
+        name="fecha"
+        required
+      )
+
+    .campo
+      label(for="hora") Hora
+      input(
+        type="time"
+        id="hora"
+        name="hora"
+        required
+      )
+
+    .campo
+      label(for="servicio") Servicio
+      input(
+        type="text"
+        id="servicio"
+        name="servicio"
+        minlength="3"
+        required
+      )
+
+    button.boton(type="submit") Registrar turno
+
+  a.volver(href="/turnos") Volver a turnos

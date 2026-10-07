@@ -1,0 +1,42 @@
+extends layout
+
+block contenido
+
+  h2 Detalle del vehículo
+
+  if vehiculo
+
+    section.detalle-card
+      h3 #{vehiculo.marca} #{vehiculo.modelo}
+
+      p
+        strong ID:
+        |  #{vehiculo.id}
+
+      p
+        strong Patente:
+        |  #{vehiculo.patente}
+
+      p
+        strong Marca:
+        |  #{vehiculo.marca}
+
+      p
+        strong Modelo:
+        |  #{vehiculo.modelo}
+
+      p
+        strong Cliente ID:
+        |  #{vehiculo.clienteId}
+
+      .acciones-detalle
+        button.boton-eliminar(
+          type="button"
+          onclick=`eliminarVehiculo(${vehiculo.id})`
+        ) Eliminar vehículo
+
+        a.volver(href="/vehiculos") Volver a vehículos
+
+  else
+
+    p Vehículo no encontrado.

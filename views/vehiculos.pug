@@ -1,0 +1,74 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          path(d="M5 17h14")
+          path(d="M6 17l-1-5 2-5h10l2 5-1 5")
+          circle(cx="7" cy="17" r="2")
+          circle(cx="17" cy="17" r="2")
+
+      div
+        h2 Vehículos
+        p Gestión de vehículos registrados en AutoBox
+
+    a.boton(href="/vehiculos/nuevo") + Nuevo vehículo
+
+
+  .module-toolbar
+
+    .search-box
+      svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+        circle(cx="11" cy="11" r="7")
+        path(d="M20 20l-4-4")
+
+      input(
+        type="search"
+        data-table-search="tablaVehiculos"
+        placeholder="Buscar por patente, marca o modelo..."
+        autocomplete="off"
+      )
+
+    .module-count
+      span= vehiculos.length
+      |  vehículos registrados
+
+
+  .table-card
+
+    if vehiculos.length > 0
+
+      table#tablaVehiculos
+        thead
+          tr
+            th ID
+            th Patente
+            th Marca
+            th Modelo
+            th Cliente
+            th Acciones
+
+        tbody
+          each vehiculo in vehiculos
+            tr
+              td
+                span.id-badge= vehiculo.id
+
+              td
+                strong= vehiculo.patente
+
+              td= vehiculo.marca
+              td= vehiculo.modelo
+              td= vehiculo.clienteId
+
+              td
+                a.action-link(href="/vehiculos/" + vehiculo.id) Ver detalle →
+
+    else
+
+      .empty-state
+        h3 No hay vehículos registrados
+        p Los nuevos vehículos aparecerán en esta sección.

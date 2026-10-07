@@ -1,0 +1,53 @@
+extends layout
+
+block contenido
+
+  h2 Nuevo vehículo
+
+  p Complete los datos para registrar un vehículo.
+
+  form(action="/vehiculos" method="POST")
+
+    .campo
+      label(for="patente") Patente
+      input(
+        type="text"
+        id="patente"
+        name="patente"
+        required
+      )
+
+    .campo
+      label(for="marca") Marca
+      input(
+        type="text"
+        id="marca"
+        name="marca"
+        required
+      )
+
+    .campo
+      label(for="modelo") Modelo
+      input(
+        type="text"
+        id="modelo"
+        name="modelo"
+        required
+      )
+
+    .campo
+      label(for="clienteId") Cliente
+
+      select(
+        id="clienteId"
+        name="clienteId"
+        required
+      )
+        option(value="" disabled selected) Seleccione un cliente
+
+        each cliente in clientes
+          option(value=cliente.id) #{cliente.nombre} #{cliente.apellido}
+
+    button.boton(type="submit") Registrar vehículo
+
+  a.volver(href="/vehiculos") Volver a vehículos

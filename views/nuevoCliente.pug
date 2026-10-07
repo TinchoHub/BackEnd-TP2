@@ -1,0 +1,56 @@
+extends layout
+
+block contenido
+
+  h2 Nuevo cliente
+
+  p Complete los datos para registrar un cliente.
+
+  form(action="/clientes" method="POST")
+
+    .campo
+      label(for="nombre") Nombre
+      input(
+        type="text"
+        id="nombre"
+        name="nombre"
+        minlength="2"
+        required
+      )
+
+    .campo
+      label(for="apellido") Apellido
+      input(
+        type="text"
+        id="apellido"
+        name="apellido"
+        minlength="2"
+        required
+      )
+
+    .campo
+      label(for="telefono") Teléfono
+      input(
+        type="tel"
+        id="telefono"
+        name="telefono"
+        inputmode="numeric"
+        pattern="[0-9]{7,15}"
+        minlength="7"
+        maxlength="15"
+        title="Ingrese entre 7 y 15 números, sin letras ni símbolos"
+        required
+      )
+
+    .campo
+      label(for="email") Email
+      input(
+        type="email"
+        id="email"
+        name="email"
+        required
+      )
+
+    button.boton(type="submit") Registrar cliente
+
+  a.volver(href="/clientes") Volver a clientes

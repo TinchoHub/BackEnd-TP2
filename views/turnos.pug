@@ -1,0 +1,76 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          rect(x="3" y="5" width="18" height="16" rx="2")
+          path(d="M16 3v4M8 3v4M3 10h18")
+          path(d="M8 14h2M12 14h2M16 14h2M8 17h2M12 17h2")
+
+      div
+        h2 Turnos
+        p Gestión y seguimiento de turnos del taller
+
+    a.boton(href="/turnos/nuevo") + Nuevo turno
+
+
+  .module-toolbar
+
+    .search-box
+      svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+        circle(cx="11" cy="11" r="7")
+        path(d="M20 20l-4-4")
+
+      input(
+        type="search"
+        data-table-search="tablaTurnos"
+        placeholder="Buscar turno..."
+        autocomplete="off"
+      )
+
+    .module-count
+      span= turnos.length
+      |  turnos registrados
+
+
+  .table-card
+
+    if turnos.length > 0
+
+      table#tablaTurnos
+        thead
+          tr
+            th ID
+            th Cliente
+            th Vehículo
+            th Fecha
+            th Hora
+            th Servicio
+            th Acciones
+
+        tbody
+          each turno in turnos
+            tr
+              td
+                span.id-badge= turno.id
+
+              td= turno.clienteId
+              td= turno.vehiculoId
+
+              td
+                strong= turno.fecha
+
+              td= turno.hora
+              td= turno.servicio
+
+              td
+                a.action-link(href="/turnos/" + turno.id) Ver detalle →
+
+    else
+
+      .empty-state
+        h3 No hay turnos registrados
+        p Los nuevos turnos aparecerán en esta sección.

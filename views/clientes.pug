@@ -1,0 +1,83 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+
+      .page-header__icon
+        svg(
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        )
+          circle(cx="12" cy="8" r="4")
+          path(d="M4 21c0-4 3.5-7 8-7s8 3 8 7")
+
+      div
+        h2 Clientes
+        p Gestión de clientes registrados en AutoBox
+
+    a.boton(href="/clientes/nuevo") + Nuevo cliente
+
+
+  .module-toolbar
+
+    .search-box
+      svg(
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      )
+        circle(cx="11" cy="11" r="7")
+        path(d="M20 20l-4-4")
+
+      input(
+        type="search"
+        data-table-search="tablaClientes"
+        placeholder="Buscar cliente..."
+        autocomplete="off"
+      )
+
+    .module-count
+      span= clientes.length
+      |  clientes registrados
+
+
+  .table-card
+
+    if clientes.length > 0
+
+      table#tablaClientes
+        thead
+          tr
+            th ID
+            th Nombre
+            th Apellido
+            th Teléfono
+            th Email
+            th Acciones
+
+        tbody
+          each cliente in clientes
+            tr
+              td
+                span.id-badge= cliente.id
+
+              td
+                strong= cliente.nombre
+
+              td= cliente.apellido
+              td= cliente.telefono
+              td= cliente.email
+
+              td
+                a.action-link(href="/clientes/" + cliente.id) Ver detalle →
+
+    else
+
+      .empty-state
+        h3 No hay clientes registrados
+        p Los nuevos clientes aparecerán en esta sección.
