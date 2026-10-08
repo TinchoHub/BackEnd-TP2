@@ -3,6 +3,17 @@ extends layout
 block contenido
   .not-found-wrapper
     article.not-found-card
-      img.not-found-banner(src="/img/404.png", alt="404 - Página no encontrada")
+      img.not-found-banner(src="/img/404.png", alt="Error")
+      
+      if titulo
+        h1= titulo
+      if mensaje
+        p= mensaje
+
+      if detalles && detalles.length
+        ul.error-lista
+          each det in detalles
+            li= det
+
       .not-found-action
         a.boton(href="/") Volver al Inicio
