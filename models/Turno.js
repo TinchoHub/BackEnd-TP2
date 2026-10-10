@@ -1,3 +1,4 @@
+
 class Turno {
     constructor(id, clienteId, vehiculoId, fecha, hora, servicio) {
         this.id = id;
@@ -9,4 +10,4 @@ class Turno {
     }
 }
 
-module.exports = Turno;
+export default Turno;
