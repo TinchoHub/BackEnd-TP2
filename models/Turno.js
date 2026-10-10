@@ -2,18 +2,21 @@ import mongoose from 'mongoose';
 
 const turnoSchema = new mongoose.Schema(
   {
-    cliente: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Cliente',
-      required: [true, 'El cliente es obligatorio']
+    id: {
+      type: Number,
+      required: true,
+      unique: true
     },
-    vehiculo: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Vehiculo',
-      required: [true, 'El vehículo es obligatorio']
+    clienteId: {
+      type: Number,
+      required: true
+    },
+    vehiculoId: {
+      type: Number,
+      required: true
     },
     fecha: {
-      type: Date,
+      type: String,
       required: [true, 'La fecha es obligatoria']
     },
     hora: {
