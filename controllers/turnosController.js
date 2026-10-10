@@ -1,4 +1,3 @@
-
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,27 +7,19 @@ import { leerVehiculos } from './vehiculosController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const rutaArchivo = path.join(__dirname, '../data/turnos.json');
 
-const leerTurnos = () => {
-    if (!fs.existsSync(rutaArchivo)) return [];
-    const data = fs.readFileSync(rutaArchivo, 'utf-8');
-    return data ? JSON.parse(data) : [];
-};
-
-const guardarTurnos = (turnos) => {
-    fs.writeFileSync(rutaArchivo, JSON.stringify(turnos, null, 2), 'utf-8');
-};
-
-export const listarTurnos = (req, res, next) => {
+// LISTAR TURNOS
+export const listarTurnos = async (req, res, next) => {
     try {
-        res.json(leerTurnos());
+        const turnos = await Turno.find().sort({ id: 1 });
+        res.json(turnos);
     } catch (error) {
         next(error);
     }
 };
 
-export const consultarTurnoPorId = (req, res, next) => {
+// CONSULTAR TURNO POR ID
+export const consultarTurnoPorId = async (req, res, next) => {
     try {
         const id = Number(req.params.id);
 
@@ -38,7 +29,7 @@ export const consultarTurnoPorId = (req, res, next) => {
             });
         }
 
-        const turno = leerTurnos().find(t => t.id === id);
+        const turno = await Turno.findOne({ id });
 
         if (!turno) {
             return res.status(404).json({ mensaje: 'Turno no encontrado' });
@@ -50,9 +41,9 @@ export const consultarTurnoPorId = (req, res, next) => {
     }
 };
 
+// CREAR TURNO
 export const crearTurno = async (req, res, next) => {
     try {
-        const turnos = leerTurnos();
         const { clienteId, vehiculoId, fecha, hora, servicio } = req.body;
 
         if (
@@ -107,34 +98,36 @@ export const crearTurno = async (req, res, next) => {
             });
         }
 
-        const nuevoId = turnos.length
-            ? Math.max(...turnos.map(t => Number(t.id) || 0)) + 1
-            : 1;
+        // Obtener el ID autoincremental secuencial basado en Mongoose
+        const ultimoTurno = await Turno.findOne().sort({ id: -1 });
+        const nuevoId = ultimoTurno ? ultimoTurno.id + 1 : 1;
 
-        const nuevoTurno = new Turno(
-            nuevoId,
-            clienteIdNumero,
-            vehiculoIdNumero,
+        const nuevoTurno = await Turno.create({
+            id: nuevoId,
+            clienteId: clienteIdNumero,
+            vehiculoId: vehiculoIdNumero,
             fecha,
             hora,
-            servicio.trim()
-        );
-
-        turnos.push(nuevoTurno);
-        guardarTurnos(turnos);
+            servicio: servicio.trim()
+        });
 
         res.status(201).json({
             mensaje: 'Turno creado con éxito',
             turno: nuevoTurno
         });
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({
+                mensaje: 'Ya existe un turno con esos datos únicos'
+            });
+        }
         next(error);
     }
 };
 
+// ACTUALIZAR TURNO
 export const actualizarTurno = async (req, res, next) => {
     try {
-        const turnos = leerTurnos();
         const id = Number(req.params.id);
 
         if (!Number.isInteger(id) || id < 1) {
@@ -143,22 +136,21 @@ export const actualizarTurno = async (req, res, next) => {
             });
         }
 
-        const indice = turnos.findIndex(t => t.id === id);
+        const turno = await Turno.findOne({ id });
 
-        if (indice === -1) {
+        if (!turno) {
             return res.status(404).json({ mensaje: 'Turno no encontrado' });
         }
 
-        const actual = turnos[indice];
         const { clienteId, vehiculoId, fecha, hora, servicio } = req.body;
 
         const nuevoClienteId = clienteId !== undefined
             ? Number(clienteId)
-            : actual.clienteId;
+            : turno.clienteId;
 
         const nuevoVehiculoId = vehiculoId !== undefined
             ? Number(vehiculoId)
-            : actual.vehiculoId;
+            : turno.vehiculoId;
 
         if (
             !Number.isInteger(nuevoClienteId) || nuevoClienteId < 1 ||
@@ -177,7 +169,8 @@ export const actualizarTurno = async (req, res, next) => {
             });
         }
 
-        const vehiculo = leerVehiculos().find(v => v.id === nuevoVehiculoId);
+        const vehiculos = leerVehiculos();
+        const vehiculo = vehiculos.find(v => v.id === nuevoVehiculoId);
 
         if (!vehiculo) {
             return res.status(400).json({
@@ -200,27 +193,23 @@ export const actualizarTurno = async (req, res, next) => {
             });
         }
 
-        const actualizado = new Turno(
-            id,
-            nuevoClienteId,
-            nuevoVehiculoId,
-            fecha || actual.fecha,
-            hora || actual.hora,
-            servicio !== undefined ? servicio.trim() : actual.servicio
-        );
+        turno.clienteId = nuevoClienteId;
+        turno.vehiculoId = nuevoVehiculoId;
+        if (fecha) turno.fecha = fecha;
+        if (hora) turno.hora = hora;
+        if (servicio !== undefined) turno.servicio = servicio.trim();
 
-        turnos[indice] = actualizado;
-        guardarTurnos(turnos);
+        await turno.save();
 
-        res.json({ mensaje: 'Turno actualizado', turno: actualizado });
+        res.json({ mensaje: 'Turno actualizado', turno });
     } catch (error) {
         next(error);
     }
 };
 
-export const cancelarTurnoPorId = (req, res, next) => {
+// CANCELAR TURNO
+export const cancelarTurnoPorId = async (req, res, next) => {
     try {
-        const turnos = leerTurnos();
         const id = Number(req.params.id);
 
         if (!Number.isInteger(id) || id < 1) {
@@ -229,14 +218,13 @@ export const cancelarTurnoPorId = (req, res, next) => {
             });
         }
 
-        const indice = turnos.findIndex(t => t.id === id);
+        const turno = await Turno.findOne({ id });
 
-        if (indice === -1) {
+        if (!turno) {
             return res.status(404).json({ mensaje: 'Turno no encontrado' });
         }
 
-        turnos.splice(indice, 1);
-        guardarTurnos(turnos);
+        await Turno.deleteOne({ id });
 
         res.json({ mensaje: 'Turno cancelado correctamente' });
     } catch (error) {
