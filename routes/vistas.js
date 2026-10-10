@@ -7,11 +7,18 @@ const router = express.Router();
 // Inicio
 router.get('/', vistasController.renderInicio);
 
-// Clientes
+
+ // Clientes
 router.get('/clientes', vistasController.renderClientes);
 router.get('/clientes/nuevo', vistasController.renderNuevoCliente);
+
+// Rutas para modificar clientes
+router.get('/clientes/:id/editar', vistasController.renderEditarCliente);
+router.post('/clientes/:id/editar', vistasController.procesarModificarCliente);
+
 router.get('/clientes/:id', vistasController.renderClienteDetalle);
 router.post('/clientes', vistasController.procesarNuevoCliente);
+
 
 // Vehículos
 router.get('/vehiculos', vistasController.renderVehiculos);

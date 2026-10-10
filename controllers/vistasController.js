@@ -5,9 +5,12 @@ import { fileURLToPath } from 'node:url';
 
 import Cliente from '../models/Cliente.js';
 
+
 import {
-  agregarCliente
+  agregarCliente,
+  modificarClientePorId
 } from './clientesController.js';
+
 
 import {
   leerVehiculos,
@@ -172,4 +175,25 @@ export const renderTurnoDetalle = (req, res) => {
 
 export const procesarNuevoTurno = async (req, res) => {
   await ejecutarAccion(crearTurno, req, res, '/turnos');
+};
+
+
+export const renderEditarCliente = async (req, res, next) => {  //busca el cliente en MongoDB y muestra el formulario con sus datos actuales
+  try {
+    const id = Number(req.params.id);
+    const cliente = await Cliente.findOne({ id }).lean();
+
+    res.render('editarCliente', { cliente });   
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const procesarModificarCliente = async (req, res) => {   //recibe los cambios del formulario y llama al controlador que actualiza el cliente
+  await ejecutarAccion(
+    modificarClientePorId,
+    req,
+    res,
+    '/clientes'
+  );
 };
