@@ -1,23 +1,18 @@
-const express = require('express');
+import express from 'express';
+import {
+listarClientes,
+agregarCliente,
+consultarClientePorId,
+modificarClientePorId,
+eliminarClientePorId
+} from '../controllers/clientesController.js';
 
 const router = express.Router();
 
-const clientesController = require('../controllers/clientesController');
+router.get('/', listarClientes);
+router.post('/', agregarCliente);
+router.get('/:id', consultarClientePorId);
+router.put('/:id', modificarClientePorId);
+router.delete('/:id', eliminarClientePorId);
 
-
-// Listar todos los clientes
-router.get('/', clientesController.listarClientes);
-
-// Agregar un cliente nuevo
-router.post('/',  clientesController.agregarCliente);
-
-// Consultar un cliente por ID
-router.get('/:id', clientesController.consultarClientePorId);
-
-// Modificar un cliente por ID
-router.put('/:id', clientesController.modificarClientePorId);
-
-// Eliminar un cliente por ID
-router.delete('/:id', clientesController.eliminarClientePorId);
-
-module.exports = router;
+export default router;
