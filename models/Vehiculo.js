@@ -1,3 +1,4 @@
+
 class Vehiculo {
     constructor(id, patente, marca, modelo, clienteId) {
         this.id = id;
@@ -8,4 +9,4 @@ class Vehiculo {
     }
 }
 
-module.exports = Vehiculo;
+export default Vehiculo;
