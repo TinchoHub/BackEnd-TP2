@@ -72,6 +72,17 @@ app.use(errorHandler);
 // ==========================================
 // Inicialización del Servidor
 // ==========================================
-app.listen(PORT, () => {
-    console.log(`Servidor en http://localhost:${PORT}`);
-});
+const iniciarServidor = async () => {
+    try {
+        await conectarDB();
+
+        app.listen(PORT, () => {
+            console.log(`Servidor en http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('No se pudo iniciar el servidor:', error.message);
+        process.exit(1);
+    }
+};
+
+iniciarServidor();

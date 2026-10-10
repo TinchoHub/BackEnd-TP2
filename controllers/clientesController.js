@@ -1,399 +1,269 @@
-const fs = require("fs");
-const path = require("path");
-const Cliente = require("../models/Cliente");
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import Cliente from '../models/Cliente.js';
 
-const rutaVehiculos = path.join(__dirname, "../data/vehiculos.json");
-const rutaArchivo = path.join(__dirname, "../data/clientes.json");
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+const rutaVehiculos = path.join(__dirname, '../data/vehiculos.json');
+
+// Leer los vehículos para comprobar las relaciones con clientes.
 const leerVehiculos = () => {
     if (!fs.existsSync(rutaVehiculos)) {
         return [];
     }
 
-    const data = fs.readFileSync(rutaVehiculos, "utf-8");
-
-    return data ? JSON.parse(data) : [];
-};
-// ==========================================
-// LEER ARCHIVO DE CLIENTES
-// ==========================================
-
-const leerClientes = () => {
-    if (!fs.existsSync(rutaArchivo)) {
-        return [];
-    }
-
-    const data = fs.readFileSync(rutaArchivo, "utf-8");
-
+    const data = fs.readFileSync(rutaVehiculos, 'utf-8');
     return data ? JSON.parse(data) : [];
 };
 
-
-// ==========================================
-// GUARDAR ARCHIVO DE CLIENTES
-// ==========================================
-
-const guardarClientes = (clientes) => {
-    fs.writeFileSync(
-        rutaArchivo,
-        JSON.stringify(clientes, null, 2)
-    );
-};
-
-
-// ==========================================
 // LISTAR CLIENTES
-// ==========================================
-
-const listarClientes = (req, res) => {
-    const clientes = leerClientes();
-
-    res.json(clientes);
+export const listarClientes = async (req, res, next) => {
+    try {
+        const clientes = await Cliente.find().sort({ id: 1 });
+        res.json(clientes);
+    } catch (error) {
+        next(error);
+    }
 };
 
-
-// ==========================================
 // CONSULTAR CLIENTE POR ID
-// ==========================================
+export const consultarClientePorId = async (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
 
-const consultarClientePorId = (req, res) => {
-    const clientes = leerClientes();
+        if (!Number.isInteger(id) || id < 1) {
+            return res.status(400).json({
+                mensaje: 'El ID del cliente debe ser un número entero válido'
+            });
+        }
 
-    const id = parseInt(req.params.id);
+        const cliente = await Cliente.findOne({ id });
 
-    if (isNaN(id)) {
-        return res.status(400).json({
-            error: "Dato incorrecto",
-            mensaje: "El ID del cliente debe ser un número entero válido"
-        });
+        if (!cliente) {
+            return res.status(404).json({
+                mensaje: 'Cliente no encontrado'
+            });
+        }
+
+        res.json(cliente);
+    } catch (error) {
+        next(error);
     }
-
-    const cliente = clientes.find(
-        cliente => cliente.id === id
-    );
-
-    if (!cliente) {
-        return res.status(404).json({
-            mensaje: "Cliente no encontrado"
-        });
-    }
-
-    res.json(cliente);
 };
 
-
-// ==========================================
 // AGREGAR CLIENTE
-// ==========================================
-
-const agregarCliente = (req, res) => {
-    const clientes = leerClientes();
-
-    const {
-        nombre,
-        apellido,
-        telefono,
-        email
-    } = req.body;
-
-
-    // Validar campos obligatorios
-    if (!nombre || !apellido || !telefono || !email) {
-        return res.status(400).json({
-            mensaje:
-                "Faltan campos obligatorios (nombre, apellido, telefono, email)"
-        });
-    }
-
-
-    // Validar nombre
-    if (nombre.trim().length < 2) {
-        return res.status(400).json({
-            mensaje:
-                "El nombre debe tener al menos 2 caracteres"
-        });
-    }
-
-
-    // Validar apellido
-    if (apellido.trim().length < 2) {
-        return res.status(400).json({
-            mensaje:
-                "El apellido debe tener al menos 2 caracteres"
-        });
-    }
-
-
-    // Validar teléfono
-    const telefonoValido = /^\d{7,15}$/;
-
-    if (!telefonoValido.test(String(telefono))) {
-        return res.status(400).json({
-            mensaje:
-                "El teléfono debe contener entre 7 y 15 números"
-        });
-    }
-
-
-    // Validar email
-    const emailValido =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailValido.test(email)) {
-        return res.status(400).json({
-            mensaje:
-                "El email no tiene un formato válido"
-        });
-    }
-
-
-    // Evitar emails repetidos
-    const emailExistente = clientes.find(
-        cliente =>
-            cliente.email.toLowerCase() ===
-            email.toLowerCase()
-    );
-
-    if (emailExistente) {
-        return res.status(400).json({
-            mensaje:
-                "Ya existe un cliente registrado con ese email"
-        });
-    }
-
-
-    // Generar ID autoincremental
-    const nuevoId =
-        clientes.length > 0
-            ? Math.max(
-                  ...clientes.map(cliente => cliente.id)
-              ) + 1
-            : 1;
-
-
-    // Crear objeto Cliente
-    const nuevoCliente = new Cliente(
-        nuevoId,
-        nombre.trim(),
-        apellido.trim(),
-        String(telefono).trim(),
-        email.trim().toLowerCase()
-    );
-
-
-    // Agregar cliente al array
-    clientes.push(nuevoCliente);
-
-
-    // Guardar cambios en JSON
-    guardarClientes(clientes);
-
-
-    // Respuesta
-    res.status(201).json({
-        mensaje: "Cliente agregado con éxito",
-        cliente: nuevoCliente
-    });
-};
-
-
-// ==========================================
-// MODIFICAR CLIENTE
-// ==========================================
-
-const modificarClientePorId = (req, res) => {
-    const clientes = leerClientes();
-
-    const id = parseInt(req.params.id);
-
-    if (isNaN(id)) {
-        return res.status(400).json({
-            error: "Dato incorrecto",
-            mensaje: "El ID proporcionado debe ser un número entero válido"
-        });
-    }
-
-    const clienteIndex = clientes.findIndex(
-        cliente => cliente.id === id
-    );
-
-
-    if (clienteIndex === -1) {
-        return res.status(404).json({
-            mensaje: "Cliente no encontrado"
-        });
-    }
-
-
-    const {
-        nombre,
-        apellido,
-        telefono,
-        email
-    } = req.body;
-
-
-    // Si se envía nombre, validarlo
-    if (
-        nombre &&
-        nombre.trim().length < 2
-    ) {
-        return res.status(400).json({
-            mensaje:
-                "El nombre debe tener al menos 2 caracteres"
-        });
-    }
-
-
-    // Si se envía apellido, validarlo
-    if (
-        apellido &&
-        apellido.trim().length < 2
-    ) {
-        return res.status(400).json({
-            mensaje:
-                "El apellido debe tener al menos 2 caracteres"
-        });
-    }
-
-
-    // Si se envía teléfono, validarlo
-    if (telefono) {
-        const telefonoValido = /^\d{7,15}$/;
+export const agregarCliente = async (req, res, next) => {
+    try {
+        const { nombre, apellido, telefono, email } = req.body;
 
         if (
-            !telefonoValido.test(
-                String(telefono)
-            )
+            !nombre?.trim() ||
+            !apellido?.trim() ||
+            !telefono ||
+            !email?.trim()
         ) {
             return res.status(400).json({
-                mensaje:
-                    "El teléfono debe contener entre 7 y 15 números"
+                mensaje: 'Faltan campos obligatorios (nombre, apellido, telefono, email)'
             });
         }
-    }
 
-
-    // Si se envía email, validarlo
-    if (email) {
-        const emailValido =
-            /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-        if (!emailValido.test(email)) {
+        if (nombre.trim().length < 2) {
             return res.status(400).json({
-                mensaje:
-                    "El email no tiene un formato válido"
+                mensaje: 'El nombre debe tener al menos 2 caracteres'
             });
         }
 
+        if (apellido.trim().length < 2) {
+            return res.status(400).json({
+                mensaje: 'El apellido debe tener al menos 2 caracteres'
+            });
+        }
 
-        // Comprobar que otro cliente no tenga ese email
-        const emailExistente = clientes.find(
-            cliente =>
-                cliente.id !== id &&
-                cliente.email.toLowerCase() ===
-                    email.toLowerCase()
-        );
+        const telefonoLimpio = String(telefono).trim();
+
+        if (!/^\d{7,15}$/.test(telefonoLimpio)) {
+            return res.status(400).json({
+                mensaje: 'El teléfono debe contener entre 7 y 15 números'
+            });
+        }
+
+        const emailLimpio = email.trim().toLowerCase();
+        const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!emailValido.test(emailLimpio)) {
+            return res.status(400).json({
+                mensaje: 'El email no tiene un formato válido'
+            });
+        }
+
+        const emailExistente = await Cliente.findOne({
+            email: emailLimpio
+        });
 
         if (emailExistente) {
             return res.status(400).json({
-                mensaje:
-                    "Ya existe otro cliente registrado con ese email"
+                mensaje: 'Ya existe un cliente registrado con ese email'
             });
         }
+
+        const ultimoCliente = await Cliente.findOne().sort({ id: -1 });
+        const nuevoId = ultimoCliente ? ultimoCliente.id + 1 : 1;
+
+        const nuevoCliente = await Cliente.create({
+            id: nuevoId,
+            nombre: nombre.trim(),
+            apellido: apellido.trim(),
+            telefono: telefonoLimpio,
+            email: emailLimpio
+        });
+
+        res.status(201).json({
+            mensaje: 'Cliente agregado con éxito',
+            cliente: nuevoCliente
+        });
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(400).json({
+                mensaje: 'Ya existe un cliente con esos datos únicos'
+            });
+        }
+
+        next(error);
     }
-
-
-    // Actualizar cliente
-    clientes[clienteIndex] = new Cliente(
-        id,
-
-        nombre
-            ? nombre.trim()
-            : clientes[clienteIndex].nombre,
-
-        apellido
-            ? apellido.trim()
-            : clientes[clienteIndex].apellido,
-
-        telefono
-            ? String(telefono).trim()
-            : clientes[clienteIndex].telefono,
-
-        email
-            ? email.trim().toLowerCase()
-            : clientes[clienteIndex].email
-    );
-
-
-    guardarClientes(clientes);
-
-
-    res.json({
-        mensaje: "Cliente modificado",
-        cliente: clientes[clienteIndex]
-    });
 };
 
+// MODIFICAR CLIENTE
+export const modificarClientePorId = async (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
 
-// ==========================================
+        if (!Number.isInteger(id) || id < 1) {
+            return res.status(400).json({
+                mensaje: 'El ID proporcionado debe ser un número entero válido'
+            });
+        }
+
+        const cliente = await Cliente.findOne({ id });
+
+        if (!cliente) {
+            return res.status(404).json({
+                mensaje: 'Cliente no encontrado'
+            });
+        }
+
+        const { nombre, apellido, telefono, email } = req.body;
+
+        if (nombre !== undefined) {
+            if (typeof nombre !== 'string' || nombre.trim().length < 2) {
+                return res.status(400).json({
+                    mensaje: 'El nombre debe tener al menos 2 caracteres'
+                });
+            }
+
+            cliente.nombre = nombre.trim();
+        }
+
+        if (apellido !== undefined) {
+            if (typeof apellido !== 'string' || apellido.trim().length < 2) {
+                return res.status(400).json({
+                    mensaje: 'El apellido debe tener al menos 2 caracteres'
+                });
+            }
+
+            cliente.apellido = apellido.trim();
+        }
+
+        if (telefono !== undefined) {
+            const telefonoLimpio = String(telefono).trim();
+
+            if (!/^\d{7,15}$/.test(telefonoLimpio)) {
+                return res.status(400).json({
+                    mensaje: 'El teléfono debe contener entre 7 y 15 números'
+                });
+            }
+
+            cliente.telefono = telefonoLimpio;
+        }
+
+        if (email !== undefined) {
+            if (typeof email !== 'string') {
+                return res.status(400).json({
+                    mensaje: 'El email no tiene un formato válido'
+                });
+            }
+
+            const emailLimpio = email.trim().toLowerCase();
+
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpio)) {
+                return res.status(400).json({
+                    mensaje: 'El email no tiene un formato válido'
+                });
+            }
+
+            const emailExistente = await Cliente.findOne({
+                email: emailLimpio,
+                id: { $ne: id }
+            });
+
+            if (emailExistente) {
+                return res.status(400).json({
+                    mensaje: 'Ya existe otro cliente registrado con ese email'
+                });
+            }
+
+            cliente.email = emailLimpio;
+        }
+
+        await cliente.save();
+
+        res.json({
+            mensaje: 'Cliente modificado',
+            cliente
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // ELIMINAR CLIENTE
-// ==========================================
+export const eliminarClientePorId = async (req, res, next) => {
+    try {
+        const id = Number(req.params.id);
 
-const eliminarClientePorId = (req, res) => {
-    const clientes = leerClientes();
-    const vehiculos = leerVehiculos();
+        if (!Number.isInteger(id) || id < 1) {
+            return res.status(400).json({
+                mensaje: 'El ID del cliente debe ser un número entero válido'
+            });
+        }
 
-    const id = parseInt(req.params.id);
+        const cliente = await Cliente.findOne({ id });
 
-    if (isNaN(id)) {
-        return res.status(400).json({
-            error: "Dato incorrecto",
-            mensaje: "El ID del cliente debe ser un número entero válido"
+        if (!cliente) {
+            return res.status(404).json({
+                mensaje: 'Cliente no encontrado'
+            });
+        }
+
+        const vehiculos = leerVehiculos();
+
+        const tieneVehiculos = vehiculos.some(
+            vehiculo => Number(vehiculo.clienteId) === id
+        );
+
+        if (tieneVehiculos) {
+            return res.status(400).json({
+                mensaje: 'No se puede eliminar el cliente porque tiene vehículos asociados'
+            });
+        }
+
+        await Cliente.deleteOne({ id });
+
+        res.json({
+            mensaje: 'Cliente eliminado correctamente'
         });
+    } catch (error) {
+        next(error);
     }
-
-    const clienteIndex = clientes.findIndex(
-        cliente => cliente.id === id
-    );
-
-    if (clienteIndex === -1) {
-        return res.status(404).json({
-            mensaje: "Cliente no encontrado"
-        });
-    }
-
-    const tieneVehiculos = vehiculos.some(
-        vehiculo => parseInt(vehiculo.clienteId) === id
-    );
-
-    if (tieneVehiculos) {
-        return res.status(400).json({
-            mensaje:
-                "No se puede eliminar el cliente porque tiene vehículos asociados"
-        });
-    }
-
-    clientes.splice(clienteIndex, 1);
-
-    guardarClientes(clientes);
-
-    res.json({
-        mensaje: "Cliente eliminado correctamente"
-    });
-};
-
-
-// ==========================================
-// EXPORTAR FUNCIONES
-// ==========================================
-
-module.exports = {
-    leerClientes,
-    guardarClientes,
-    listarClientes,
-    agregarCliente,
-    consultarClientePorId,
-    modificarClientePorId,
-    eliminarClientePorId
 };

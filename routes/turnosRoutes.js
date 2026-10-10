@@ -1,6 +1,7 @@
-const express = require('express');
+import express from 'express';
+import * as turnosController from '../controllers/turnosController.js';
+
 const router = express.Router();
-const turnosController = require('../controllers/turnosController');
 
 // Listar todos los turnos
 router.get('/', turnosController.listarTurnos);
@@ -17,5 +18,4 @@ router.delete('/:id', turnosController.cancelarTurnoPorId);
 // Modificar o actualizar un turno por ID
 router.put('/:id', turnosController.actualizarTurno);
 
-
-module.exports = router;
+export default router;
