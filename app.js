@@ -11,13 +11,18 @@ import conectarDB from './config/db.js';
 import errorHandler from './middlewares/errorHandler.js';
 
 // ==========================================
+// Importación de Rutas
+// ==========================================
+import clientesRutas from './routes/clientesRoutes.js';
+import vehiculosRutas from './routes/vehiculosRoutes.js';
+import turnosRutas from './routes/turnosRoutes.js';
+import vistasRutas from './routes/vistas.js';
+
+// ==========================================
 // Configuración de __dirname para ES Modules
 // ==========================================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Conectar a MongoDB
-conectarDB();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,10 +30,10 @@ const PORT = process.env.PORT || 3000;
 // ==========================================
 // Motor de Plantillas (Pug) y Archivos Estáticos
 // ==========================================
-app.set("view engine", "pug");
-app.set("views", path.join(__dirname, "views"));
+app.set('view engine', 'pug');
+app.set('views', path.join(__dirname, 'views'));
 
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ==========================================
 // Middlewares de Parseo de Solicitudes
@@ -36,13 +41,16 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuracion de sesiones
+// ==========================================
+// Configuración de Sesiones
+// ==========================================
 app.use(session({
     secret: process.env.SESSION_SECRET || 'autobox-secret-key',
     resave: false,
     saveUninitialized: false,
     cookie: { maxAge: 1000 * 60 * 60 } // Sesión válida por 1 hora
 }));
+
 // Pasar el usuario a las vistas Pug de manera global
 app.use((req, res, next) => {
     res.locals.usuario = req.session.usuario || null;
@@ -50,31 +58,20 @@ app.use((req, res, next) => {
 });
 
 // ==========================================
-// Integración de Módulos (API)
+// Integración de Rutas (API y Web)
 // ==========================================
-// Módulo de Clientes - Implementado por Dalila
-import clientesRutas from './routes/clientesRoutes.js';
 app.use('/api/clientes', clientesRutas);
-
-// Módulo de Vehículos - Implementado por Jorge
-import vehiculosRutas from './routes/vehiculosRoutes.js';
 app.use('/api/vehiculos', vehiculosRutas);
-
-// Módulo de Turnos - Implementado por Luis
-import turnosRutas from './routes/turnosRoutes.js';
 app.use('/api/turnos', turnosRutas);
-
-// Rutas Web (Pug)
-import vistasRutas from './routes/vistas.js';
-app.use("/", vistasRutas);
+app.use('/', vistasRutas);
 
 // ==========================================
 // Ruta No Encontrada (404)
 // ==========================================
 app.use((req, res) => {
-    res.status(404).render("404", { 
-        titulo: "Página no encontrada",
-        mensaje: "El recurso solicitado no existe" 
+    res.status(404).render('404', { 
+        titulo: 'Página no encontrada',
+        mensaje: 'El recurso solicitado no existe' 
     });
 });
 
