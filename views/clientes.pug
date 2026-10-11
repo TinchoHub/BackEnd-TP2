@@ -64,7 +64,7 @@ block contenido
           each cliente in clientes
             tr
               td
-                span.id-badge= cliente.id
+                span.id-badge= cliente._id.toString().slice(-6)
 
               td
                 strong= cliente.nombre
@@ -74,7 +74,7 @@ block contenido
               td= cliente.email
 
               td
-                a.action-link(href="/clientes/" + cliente.id) Ver detalle →
+                a.action-link(href="/clientes/" + cliente._id) Ver detalle →
 
     else
 

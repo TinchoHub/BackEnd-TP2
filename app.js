@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import session from 'express-session';
 
 // ==========================================
 // Módulos de Configuración y Middleware
@@ -34,6 +35,19 @@ app.use(express.static(path.join(__dirname, "public")));
 // ==========================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Configuracion de sesiones
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'autobox-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { maxAge: 1000 * 60 * 60 } // Sesión válida por 1 hora
+}));
+// Pasar el usuario a las vistas Pug de manera global
+app.use((req, res, next) => {
+    res.locals.usuario = req.session.usuario || null;
+    next();
+});
 
 // ==========================================
 // Integración de Módulos (API)

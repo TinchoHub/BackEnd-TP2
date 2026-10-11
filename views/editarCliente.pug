@@ -11,7 +11,7 @@ block contenido
   if cliente
 
     section.detalle-card
-      form(method="POST" action="/clientes/" + cliente.id + "/editar")
+      form(method="POST" action="/clientes/" + cliente._id + "/editar")
 
         .form-group
           label(for="nombre") Nombre

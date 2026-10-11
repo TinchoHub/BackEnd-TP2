@@ -55,7 +55,7 @@ block contenido
           each vehiculo in vehiculos
             tr
               td
-                span.id-badge= vehiculo.id
+                span.id-badge= vehiculo._id
 
               td
                 strong= vehiculo.patente
@@ -65,7 +65,7 @@ block contenido
               td= vehiculo.clienteId
 
               td
-                a.action-link(href="/vehiculos/" + vehiculo.id) Ver detalle →
+                a.action-link(href="/vehiculos/" + vehiculo._id) Ver detalle →
 
     else
 

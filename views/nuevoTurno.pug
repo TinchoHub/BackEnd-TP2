@@ -19,7 +19,7 @@ block contenido
         option(value="" disabled selected) Seleccione un cliente
 
         each cliente in clientes
-          option(value=cliente.id) #{cliente.nombre} #{cliente.apellido}
+          option(value=cliente._id) #{cliente.nombre} #{cliente.apellido}
 
     .campo
       label(for="vehiculoId") Vehículo
@@ -34,7 +34,7 @@ block contenido
 
         each vehiculo in vehiculos
           option(
-            value=vehiculo.id
+            value=vehiculo._id
             data-cliente-id=vehiculo.clienteId
           ) #{vehiculo.patente} - #{vehiculo.marca} #{vehiculo.modelo}
 

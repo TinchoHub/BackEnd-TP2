@@ -11,7 +11,7 @@ block contenido
 
       p
         strong ID:
-        |  #{turno.id}
+        |  #{turno._id}
 
       p
         strong Cliente ID:
@@ -36,7 +36,7 @@ block contenido
       .acciones-detalle
         button.boton-eliminar(
           type="button"
-          onclick=`cancelarTurno(${turno.id})`
+          onclick=`cancelarTurno(${turno._id})`
         ) Cancelar turno
 
         a.volver(href="/turnos") Volver a turnos

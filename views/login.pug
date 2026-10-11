@@ -1,0 +1,43 @@
+extends layout
+
+block contenido
+
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          path(d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4")
+          polyline(points="10 17 15 12 10 7")
+          line(x1="15" y1="12" x2="3" y2="12")
+
+      div
+        h2 Iniciar sesión
+        p Ingrese sus credenciales para acceder al panel de control
+
+  if error
+    .alerta-error= error
+
+  form(action="/login" method="POST")
+
+    .campo
+      label(for="username") Usuario (admin)
+      input(
+        type="text"
+        id="username"
+        name="username"
+        placeholder="admin"
+        required
+        autofocus
+      )
+
+    .campo
+      label(for="password") Contraseña (password123)
+      input(
+        type="password"
+        id="password"
+        name="password"
+        placeholder="••••••••"
+        required
+      )
+
+    button.boton(type="submit") Ingresar

@@ -21,13 +21,12 @@ block contenido
         strong Email:
         |  #{cliente.email}
 
-      
       .acciones-detalle
         a.boton(href="/clientes/" + cliente._id + "/editar") Modificar cliente
 
         button.boton-eliminar(
           type="button"
-          onclick=`eliminarCliente(${cliente._id})`
+          onclick=`eliminarCliente('${cliente._id}')`
         ) Eliminar cliente
 
         a.volver(href="/clientes") Volver a clientes
