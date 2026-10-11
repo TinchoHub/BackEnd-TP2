@@ -55,7 +55,7 @@ block contenido
           each turno in turnos
             tr
               td
-                span.id-badge= turno.id || turno._id
+                span.id-badge= turno.id
 
               td= turno.clienteId
               td= turno.vehiculoId
@@ -67,7 +67,7 @@ block contenido
               td= turno.servicio
 
               td
-                a.action-link(href="/turnos/" + (turno.id || turno._id)) Ver detalle →
+                a.action-link(href="/turnos/" + turno.id) Ver detalle →
 
     else
 
