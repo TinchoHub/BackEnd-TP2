@@ -1,44 +1,23 @@
-
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import Vehiculo from '../models/Vehiculo.js';
 import Cliente from '../models/Cliente.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const rutaArchivo = path.join(__dirname, '../data/vehiculos.json');
-const rutaTurnos = path.join(__dirname, '../data/turnos.json');
-
-const leerArchivo = (ruta) => {
-    if (!fs.existsSync(ruta)) return [];
-
-    const data = fs.readFileSync(ruta, 'utf-8');
-    return data ? JSON.parse(data) : [];
-};
-
-export const leerVehiculos = () => leerArchivo(rutaArchivo);
-const leerTurnos = () => leerArchivo(rutaTurnos);
-
-const guardarVehiculos = (vehiculos) => {
-    fs.writeFileSync(
-        rutaArchivo,
-        JSON.stringify(vehiculos, null, 2),
-        'utf-8'
-    );
+import Turno from '../models/Turno.js';
+// Función de compatibilidad para otros módulos (como turnos)
+export const leerVehiculos = async () => {
+    return await Vehiculo.find();
 };
 
 // LISTAR VEHÍCULOS
-export const listarVehiculos = (req, res, next) => {
+export const listarVehiculos = async (req, res, next) => {
     try {
-        res.json(leerVehiculos());
+        const vehiculos = await Vehiculo.find();
+        res.json(vehiculos);
     } catch (error) {
         next(error);
     }
 };
 
 // CONSULTAR VEHÍCULO POR ID
-export const consultarVehiculoPorId = (req, res, next) => {
+export const consultarVehiculoPorId = async (req, res, next) => {
     try {
         const id = Number(req.params.id);
 
@@ -49,7 +28,7 @@ export const consultarVehiculoPorId = (req, res, next) => {
             });
         }
 
-        const vehiculo = leerVehiculos().find(v => v.id === id);
+        const vehiculo = await Vehiculo.findOne({ id });
 
         if (!vehiculo) {
             return res.status(404).json({
@@ -66,7 +45,6 @@ export const consultarVehiculoPorId = (req, res, next) => {
 // AGREGAR VEHÍCULO
 export const agregarVehiculo = async (req, res, next) => {
     try {
-        const vehiculos = leerVehiculos();
         const { patente, marca, modelo, clienteId } = req.body;
 
         if (
@@ -100,28 +78,24 @@ export const agregarVehiculo = async (req, res, next) => {
 
         const patenteLimpia = patente.trim().toUpperCase();
 
-        if (vehiculos.some(v =>
-            String(v.patente).toUpperCase() === patenteLimpia
-        )) {
+        const patenteDuplicada = await Vehiculo.findOne({ patente: patenteLimpia });
+        if (patenteDuplicada) {
             return res.status(400).json({
                 mensaje: 'Ya existe un vehículo registrado con esa patente'
             });
         }
 
-        const nuevoId = vehiculos.length > 0
-            ? Math.max(...vehiculos.map(v => Number(v.id) || 0)) + 1
-            : 1;
+        // Buscar el último ID numérico para auto-incrementar
+        const ultimoVehiculo = await Vehiculo.findOne().sort({ id: -1 });
+        const nuevoId = ultimoVehiculo ? Number(ultimoVehiculo.id) + 1 : 1;
 
-        const nuevoVehiculo = {
+        const nuevoVehiculo = await Vehiculo.create({
             id: nuevoId,
             patente: patenteLimpia,
             marca: marca.trim(),
             modelo: modelo.trim(),
             clienteId: idCliente
-        };
-
-        vehiculos.push(nuevoVehiculo);
-        guardarVehiculos(vehiculos);
+        });
 
         res.status(201).json({
             mensaje: 'Vehículo creado',
@@ -135,7 +109,6 @@ export const agregarVehiculo = async (req, res, next) => {
 // MODIFICAR VEHÍCULO
 export const modificarVehiculoPorId = async (req, res, next) => {
     try {
-        const vehiculos = leerVehiculos();
         const id = Number(req.params.id);
 
         if (!Number.isInteger(id) || id < 1) {
@@ -144,17 +117,16 @@ export const modificarVehiculoPorId = async (req, res, next) => {
             });
         }
 
-        const index = vehiculos.findIndex(v => v.id === id);
+        const vehiculoExistente = await Vehiculo.findOne({ id });
 
-        if (index === -1) {
+        if (!vehiculoExistente) {
             return res.status(404).json({
                 mensaje: 'Vehículo no encontrado para modificar'
             });
         }
 
         const { patente, marca, modelo, clienteId } = req.body;
-
-        let nuevoClienteId = vehiculos[index].clienteId;
+        let nuevoClienteId = vehiculoExistente.clienteId;
 
         if (clienteId !== undefined) {
             nuevoClienteId = Number(clienteId);
@@ -165,9 +137,7 @@ export const modificarVehiculoPorId = async (req, res, next) => {
                 });
             }
 
-            const clienteExiste = await Cliente.findOne({
-                id: nuevoClienteId
-            });
+            const clienteExiste = await Cliente.findOne({ id: nuevoClienteId });
 
             if (!clienteExiste) {
                 return res.status(400).json({
@@ -176,44 +146,41 @@ export const modificarVehiculoPorId = async (req, res, next) => {
             }
         }
 
-        const nuevaPatente = patente !== undefined
-            ? String(patente).trim().toUpperCase()
-            : vehiculos[index].patente;
+        let nuevaPatente = vehiculoExistente.patente;
+        if (patente !== undefined) {
+            nuevaPatente = String(patente).trim().toUpperCase();
+            if (!nuevaPatente) {
+                return res.status(400).json({
+                    mensaje: 'La patente no puede estar vacía'
+                });
+            }
 
-        if (!nuevaPatente) {
-            return res.status(400).json({
-                mensaje: 'La patente no puede estar vacía'
+            const patenteDuplicada = await Vehiculo.findOne({
+                id: { $ne: id },
+                patente: nuevaPatente
             });
+
+            if (patenteDuplicada) {
+                return res.status(400).json({
+                    mensaje: 'Ya existe un vehículo registrado con esa patente'
+                });
+            }
         }
 
-        const patenteDuplicada = vehiculos.some(v =>
-            v.id !== id &&
-            String(v.patente).toUpperCase() === nuevaPatente
+        const vehiculoActualizado = await Vehiculo.findOneAndUpdate(
+            { id },
+            {
+                patente: nuevaPatente,
+                marca: marca !== undefined ? String(marca).trim() : vehiculoExistente.marca,
+                modelo: modelo !== undefined ? String(modelo).trim() : vehiculoExistente.modelo,
+                clienteId: nuevoClienteId
+            },
+            { new: true, runValidators: true }
         );
-
-        if (patenteDuplicada) {
-            return res.status(400).json({
-                mensaje: 'Ya existe un vehículo registrado con esa patente'
-            });
-        }
-
-        vehiculos[index] = {
-            ...vehiculos[index],
-            patente: nuevaPatente,
-            marca: marca !== undefined
-                ? String(marca).trim()
-                : vehiculos[index].marca,
-            modelo: modelo !== undefined
-                ? String(modelo).trim()
-                : vehiculos[index].modelo,
-            clienteId: nuevoClienteId
-        };
-
-        guardarVehiculos(vehiculos);
 
         res.json({
             mensaje: 'Vehículo modificado con éxito',
-            vehiculo: vehiculos[index]
+            vehiculo: vehiculoActualizado
         });
     } catch (error) {
         next(error);
@@ -221,10 +188,8 @@ export const modificarVehiculoPorId = async (req, res, next) => {
 };
 
 // ELIMINAR VEHÍCULO
-export const eliminarVehiculoPorId = (req, res, next) => {
+export const eliminarVehiculoPorId = async (req, res, next) => {
     try {
-        const vehiculos = leerVehiculos();
-        const turnos = leerTurnos();
         const id = Number(req.params.id);
 
         if (!Number.isInteger(id) || id < 1) {
@@ -234,19 +199,16 @@ export const eliminarVehiculoPorId = (req, res, next) => {
             });
         }
 
-        const vehiculoIndex = vehiculos.findIndex(
-            vehiculo => vehiculo.id === id
-        );
+        const vehiculo = await Vehiculo.findOne({ id });
 
-        if (vehiculoIndex === -1) {
+        if (!vehiculo) {
             return res.status(404).json({
                 mensaje: 'Vehículo no encontrado'
             });
         }
 
-        const tieneTurnos = turnos.some(
-            turno => Number(turno.vehiculoId) === id
-        );
+        // Restricción: verificar si tiene turnos asociados usando el modelo de Turno de Mongoose
+        const tieneTurnos = await Turno.findOne({ vehiculoId: id });
 
         if (tieneTurnos) {
             return res.status(400).json({
@@ -254,8 +216,7 @@ export const eliminarVehiculoPorId = (req, res, next) => {
             });
         }
 
-        vehiculos.splice(vehiculoIndex, 1);
-        guardarVehiculos(vehiculos);
+        await Vehiculo.findOneAndDelete({ id });
 
         res.json({
             mensaje: 'Vehículo eliminado correctamente'
