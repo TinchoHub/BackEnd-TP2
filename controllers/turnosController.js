@@ -1,17 +1,14 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import Turno from '../models/Turno.js';
 import Cliente from '../models/Cliente.js';
-import { leerVehiculos } from './vehiculosController.js';
+import Vehiculo from '../models/Vehiculo.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// LISTAR TURNOS
+// LISTAR TURNOS ACTIVOS
 export const listarTurnos = async (req, res, next) => {
     try {
-        const turnos = await Turno.find().sort({ id: 1 });
+        const turnos = await Turno.find({ activo: true })
+            .populate('clienteId', 'nombre apellido')
+            .populate('vehiculoId', 'patente marca modelo')
+            .sort({ fecha: 1, hora: 1 });
         res.json(turnos);
     } catch (error) {
         next(error);
@@ -21,20 +18,12 @@ export const listarTurnos = async (req, res, next) => {
 // CONSULTAR TURNO POR ID
 export const consultarTurnoPorId = async (req, res, next) => {
     try {
-        const id = Number(req.params.id);
-
-        if (!Number.isInteger(id) || id < 1) {
-            return res.status(400).json({
-                mensaje: 'El ID del turno debe ser un número entero válido'
-            });
-        }
-
-        const turno = await Turno.findOne({ id });
-
+        const turno = await Turno.findOne({ _id: req.params.id, activo: true })
+            .populate('clienteId', 'nombre apellido telefono email')
+            .populate('vehiculoId', 'patente marca modelo');
         if (!turno) {
-            return res.status(404).json({ mensaje: 'Turno no encontrado' });
+            return res.status(404).json({ mensaje: 'Turno no encontrado o cancelado' });
         }
-
         res.json(turno);
     } catch (error) {
         next(error);
@@ -45,82 +34,34 @@ export const consultarTurnoPorId = async (req, res, next) => {
 export const crearTurno = async (req, res, next) => {
     try {
         const { clienteId, vehiculoId, fecha, hora, servicio } = req.body;
-
-        if (
-            clienteId === undefined || clienteId === '' ||
-            vehiculoId === undefined || vehiculoId === '' ||
-            !fecha || !hora ||
-            typeof servicio !== 'string' || !servicio.trim()
-        ) {
-            return res.status(400).json({
-                mensaje: 'Faltan datos obligatorios (clienteId, vehiculoId, fecha, hora, servicio)'
-            });
-        }
-
-        const clienteIdNumero = Number(clienteId);
-        const vehiculoIdNumero = Number(vehiculoId);
-
-        if (
-            !Number.isInteger(clienteIdNumero) || clienteIdNumero < 1 ||
-            !Number.isInteger(vehiculoIdNumero) || vehiculoIdNumero < 1
-        ) {
-            return res.status(400).json({
-                mensaje: 'Los identificadores del cliente y vehículo deben ser números válidos'
-            });
-        }
-
-        const clienteExiste = await Cliente.findOne({ id: clienteIdNumero });
-
+        // Validar existencia de cliente activo
+        const clienteExiste = await Cliente.findOne({ _id: clienteId, activo: true });
         if (!clienteExiste) {
-            return res.status(400).json({
-                mensaje: 'El cliente seleccionado no existe'
-            });
+            return res.status(400).json({ mensaje: 'El cliente seleccionado no existe o está inactivo' });
         }
-
-        const vehiculos = leerVehiculos();
-        const vehiculo = vehiculos.find(v => v.id === vehiculoIdNumero);
-
+        // Validar existencia de vehículo activo
+        const vehiculo = await Vehiculo.findOne({ _id: vehiculoId, activo: true });
         if (!vehiculo) {
-            return res.status(400).json({
-                mensaje: 'El vehículo seleccionado no existe'
-            });
+            return res.status(400).json({ mensaje: 'El vehículo seleccionado no existe o está inactivo' });
         }
-
-        if (Number(vehiculo.clienteId) !== clienteIdNumero) {
+        // Verificar que el vehículo pertenezca al cliente indicado
+        if (vehiculo.clienteId.toString() !== clienteId.toString()) {
             return res.status(400).json({
                 mensaje: 'El vehículo seleccionado no pertenece al cliente indicado'
             });
         }
-
-        if (servicio.trim().length < 3) {
-            return res.status(400).json({
-                mensaje: 'El servicio debe tener al menos 3 caracteres'
-            });
-        }
-
-        // Obtener el ID autoincremental secuencial basado en Mongoose
-        const ultimoTurno = await Turno.findOne().sort({ id: -1 });
-        const nuevoId = ultimoTurno ? ultimoTurno.id + 1 : 1;
-
         const nuevoTurno = await Turno.create({
-            id: nuevoId,
-            clienteId: clienteIdNumero,
-            vehiculoId: vehiculoIdNumero,
+            clienteId,
+            vehiculoId,
             fecha,
             hora,
-            servicio: servicio.trim()
+            servicio: servicio?.trim()
         });
-
         res.status(201).json({
             mensaje: 'Turno creado con éxito',
             turno: nuevoTurno
         });
     } catch (error) {
-        if (error.code === 11000) {
-            return res.status(400).json({
-                mensaje: 'Ya existe un turno con esos datos únicos'
-            });
-        }
         next(error);
     }
 };
@@ -128,104 +69,40 @@ export const crearTurno = async (req, res, next) => {
 // ACTUALIZAR TURNO
 export const actualizarTurno = async (req, res, next) => {
     try {
-        const id = Number(req.params.id);
-
-        if (!Number.isInteger(id) || id < 1) {
-            return res.status(400).json({
-                mensaje: 'El ID del turno debe ser un número entero válido'
-            });
+        const { clienteId, vehiculoId } = req.body;
+        if (clienteId && vehiculoId) {
+            const vehiculo = await Vehiculo.findOne({ _id: vehiculoId, activo: true });
+            if (!vehiculo || vehiculo.clienteId.toString() !== clienteId.toString()) {
+                return res.status(400).json({
+                    mensaje: 'El vehículo seleccionado no pertenece al cliente indicado'
+                });
+            }
         }
-
-        const turno = await Turno.findOne({ id });
-
-        if (!turno) {
-            return res.status(404).json({ mensaje: 'Turno no encontrado' });
+        const turnoActualizado = await Turno.findOneAndUpdate(
+            { _id: req.params.id, activo: true },
+            req.body,
+            { new: true, runValidators: true }
+        );
+        if (!turnoActualizado) {
+            return res.status(404).json({ mensaje: 'Turno no encontrado para actualizar' });
         }
-
-        const { clienteId, vehiculoId, fecha, hora, servicio } = req.body;
-
-        const nuevoClienteId = clienteId !== undefined
-            ? Number(clienteId)
-            : turno.clienteId;
-
-        const nuevoVehiculoId = vehiculoId !== undefined
-            ? Number(vehiculoId)
-            : turno.vehiculoId;
-
-        if (
-            !Number.isInteger(nuevoClienteId) || nuevoClienteId < 1 ||
-            !Number.isInteger(nuevoVehiculoId) || nuevoVehiculoId < 1
-        ) {
-            return res.status(400).json({
-                mensaje: 'Los identificadores del cliente y vehículo deben ser números válidos'
-            });
-        }
-
-        const clienteExiste = await Cliente.findOne({ id: nuevoClienteId });
-
-        if (!clienteExiste) {
-            return res.status(400).json({
-                mensaje: 'El cliente seleccionado no existe'
-            });
-        }
-
-        const vehiculos = leerVehiculos();
-        const vehiculo = vehiculos.find(v => v.id === nuevoVehiculoId);
-
-        if (!vehiculo) {
-            return res.status(400).json({
-                mensaje: 'El vehículo seleccionado no existe'
-            });
-        }
-
-        if (Number(vehiculo.clienteId) !== nuevoClienteId) {
-            return res.status(400).json({
-                mensaje: 'El vehículo seleccionado no pertenece al cliente indicado'
-            });
-        }
-
-        if (
-            servicio !== undefined &&
-            (typeof servicio !== 'string' || servicio.trim().length < 3)
-        ) {
-            return res.status(400).json({
-                mensaje: 'El servicio debe tener al menos 3 caracteres'
-            });
-        }
-
-        turno.clienteId = nuevoClienteId;
-        turno.vehiculoId = nuevoVehiculoId;
-        if (fecha) turno.fecha = fecha;
-        if (hora) turno.hora = hora;
-        if (servicio !== undefined) turno.servicio = servicio.trim();
-
-        await turno.save();
-
-        res.json({ mensaje: 'Turno actualizado', turno });
+        res.json({ mensaje: 'Turno actualizado con éxito', turno: turnoActualizado });
     } catch (error) {
         next(error);
     }
 };
 
-// CANCELAR TURNO
+// CANCELAR TURNO (BAJA LÓGICA)
 export const cancelarTurnoPorId = async (req, res, next) => {
     try {
-        const id = Number(req.params.id);
-
-        if (!Number.isInteger(id) || id < 1) {
-            return res.status(400).json({
-                mensaje: 'El ID del turno debe ser un número entero válido'
-            });
-        }
-
-        const turno = await Turno.findOne({ id });
-
-        if (!turno) {
+        const turnoCancelado = await Turno.findOneAndUpdate(
+            { _id: req.params.id, activo: true },
+            { activo: false },
+            { new: true }
+        );
+        if (!turnoCancelado) {
             return res.status(404).json({ mensaje: 'Turno no encontrado' });
         }
-
-        await Turno.deleteOne({ id });
-
         res.json({ mensaje: 'Turno cancelado correctamente' });
     } catch (error) {
         next(error);

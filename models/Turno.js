@@ -1,18 +1,14 @@
 import mongoose from 'mongoose';
-
 const turnoSchema = new mongoose.Schema(
   {
-    id: {
-      type: Number,
-      required: true,
-      unique: true
-    },
     clienteId: {
-      type: Number,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Cliente',
       required: true
     },
     vehiculoId: {
-      type: Number,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Vehiculo',
       required: true
     },
     fecha: {
@@ -27,15 +23,17 @@ const turnoSchema = new mongoose.Schema(
     servicio: {
       type: String,
       required: [true, 'El servicio es obligatorio'],
-      trim: true
-    }
+      trim: true,
+      minlength: [3, 'El servicio debe tener al menos 3 caracteres']
+    },
+        // CAMPO DE ESTADO / SOFT DELETE:
+        activo: {
+            type: Boolean,
+            default: true
+        }
   },
   {
-    timestamps: true,
-    versionKey: false
+    timestamps: true
   }
 );
-
-const Turno = mongoose.model('Turno', turnoSchema);
-
-export default Turno;
+export default mongoose.model('Turno', turnoSchema);

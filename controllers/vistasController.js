@@ -1,46 +1,15 @@
-
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import Cliente from '../models/Cliente.js';
+import Vehiculo from '../models/Vehiculo.js';
+import Turno from '../models/Turno.js';
 
+import { agregarCliente, modificarClientePorId } from './clientesController.js';
+import { agregarVehiculo } from './vehiculosController.js';
+import { crearTurno } from './turnosController.js';
 
-import {
-  agregarCliente,
-  modificarClientePorId
-} from './clientesController.js';
-
-
-import {
-  leerVehiculos,
-  agregarVehiculo
-} from './vehiculosController.js';
-
-import {
-  crearTurno
-} from './turnosController.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const rutaTurnos = path.join(__dirname, '../data/turnos.json');
-
-// Lee los turnos guardados en el archivo JSON.
-const leerTurnos = () => {
-  if (!fs.existsSync(rutaTurnos)) {
-    return [];
-  }
-
-  const contenido = fs.readFileSync(rutaTurnos, 'utf-8');
-  return contenido ? JSON.parse(contenido) : [];
-};
-
-// Permite reutilizar los controladores de la API desde los formularios.
+// Adaptador para reutilizar controladores desde formularios
 const ejecutarAccion = async (controlador, req, res, destino) => {
   let codigoEstado = 200;
   let resultado;
-
   const respuesta = {
     status(codigo) {
       codigoEstado = codigo;
@@ -55,30 +24,29 @@ const ejecutarAccion = async (controlador, req, res, destino) => {
       return this;
     }
   };
-
   try {
-    await controlador(req, respuesta);
-
+    await controlador(req, respuesta, (err) => { throw err; });
     if (codigoEstado >= 400) {
-      return res
-        .status(codigoEstado)
-        .send(resultado?.mensaje || resultado?.error || 'No se pudo completar la operación.');
+      return res.status(codigoEstado).render('404', {
+        titulo: 'Error en la operación',
+        mensaje: resultado?.mensaje || resultado?.error || 'No se pudo completar la operación.'
+      });
     }
-
     return res.redirect(destino);
   } catch (error) {
-    console.error('Error al procesar el formulario:', error);
-    return res.status(500).send('Ocurrió un error al procesar el formulario.');
+    return res.status(error.status || 500).render('404', {
+      titulo: 'Error en la solicitud',
+      mensaje: error.message || 'Ocurrió un error al procesar el formulario'
+    });
   }
 };
 
 // Inicio
 export const renderInicio = async (req, res, next) => {
   try {
-    const totalClientes = await Cliente.countDocuments();
-    const totalVehiculos = leerVehiculos().length;
-    const totalTurnos = leerTurnos().length;
-
+    const totalClientes = await Cliente.countDocuments({ activo: true });
+    const totalVehiculos = await Vehiculo.countDocuments({ activo: true });
+    const totalTurnos = await Turno.countDocuments({ activo: true });
     res.render('index', {
       totalClientes,
       totalVehiculos,
@@ -92,7 +60,7 @@ export const renderInicio = async (req, res, next) => {
 // Vistas Clientes
 export const renderClientes = async (req, res, next) => {
   try {
-    const clientes = await Cliente.find().sort({ id: 1 }).lean();
+    const clientes = await Cliente.find({ activo: true }).lean();
     res.render('clientes', { clientes });
   } catch (error) {
     next(error);
@@ -105,10 +73,20 @@ export const renderNuevoCliente = (req, res) => {
 
 export const renderClienteDetalle = async (req, res, next) => {
   try {
-    const id = Number(req.params.id);
-    const cliente = await Cliente.findOne({ id }).lean();
-
+    const cliente = await Cliente.findOne({ _id: req.params.id, activo: true }).lean();
+    if (!cliente) return res.status(404).render('404', { titulo: 'No encontrado', mensaje: 'Cliente no encontrado' });
     res.render('clienteDetalle', { cliente });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const renderEditarCliente = async (req, res, next) => {
+  try {
+    const cliente = await Cliente.findOne({ _id: req.params.id, activo: true }).lean();
+    if (!cliente) return res.status(404).render('404', { titulo: 'No encontrado', mensaje: 'Cliente no encontrado' });
+
+    res.render('editarCliente', { cliente });
   } catch (error) {
     next(error);
   }
@@ -118,27 +96,37 @@ export const procesarNuevoCliente = async (req, res) => {
   await ejecutarAccion(agregarCliente, req, res, '/clientes');
 };
 
+export const procesarModificarCliente = async (req, res) => {
+  await ejecutarAccion(modificarClientePorId, req, res, '/clientes');
+};
+
 // Vistas Vehículos
-export const renderVehiculos = (req, res) => {
-  res.render('vehiculos', { vehiculos: leerVehiculos() });
+export const renderVehiculos = async (req, res, next) => {
+  try {
+    const vehiculos = await Vehiculo.find({ activo: true }).populate('clienteId').lean();
+    res.render('vehiculos', { vehiculos });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const renderNuevoVehiculo = async (req, res, next) => {
   try {
-    const clientes = await Cliente.find().sort({ id: 1 }).lean();
+    const clientes = await Cliente.find({ activo: true }).lean();
     res.render('nuevoVehiculo', { clientes });
   } catch (error) {
     next(error);
   }
 };
 
-export const renderVehiculoDetalle = (req, res) => {
-  const vehiculos = leerVehiculos();
-  const vehiculo = vehiculos.find(
-    v => v.id === Number(req.params.id)
-  );
-
-  res.render('vehiculoDetalle', { vehiculo });
+export const renderVehiculoDetalle = async (req, res, next) => {
+  try {
+    const vehiculo = await Vehiculo.findOne({ _id: req.params.id, activo: true }).populate('clienteId').lean();
+    if (!vehiculo) return res.status(404).render('404', { titulo: 'No encontrado', mensaje: 'Vehículo no encontrado' });
+    res.render('vehiculoDetalle', { vehiculo });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const procesarNuevoVehiculo = async (req, res) => {
@@ -146,54 +134,41 @@ export const procesarNuevoVehiculo = async (req, res) => {
 };
 
 // Vistas Turnos
-export const renderTurnos = (req, res) => {
-  res.render('turnos', { turnos: leerTurnos() });
+export const renderTurnos = async (req, res, next) => {
+  try {
+    const turnos = await Turno.find({ activo: true })
+      .populate('clienteId')
+      .populate('vehiculoId')
+      .lean();
+    res.render('turnos', { turnos });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const renderNuevoTurno = async (req, res, next) => {
   try {
-    const clientes = await Cliente.find().sort({ id: 1 }).lean();
-    const vehiculos = leerVehiculos();
-
-    res.render('nuevoTurno', {
-      clientes,
-      vehiculos
-    });
+    const clientes = await Cliente.find({ activo: true }).lean();
+    const vehiculos = await Vehiculo.find({ activo: true }).lean();
+    res.render('nuevoTurno', { clientes, vehiculos });
   } catch (error) {
     next(error);
   }
 };
 
-export const renderTurnoDetalle = (req, res) => {
-  const turnos = leerTurnos();
-  const turno = turnos.find(
-    t => t.id === Number(req.params.id)
-  );
-
-  res.render('turnoDetalle', { turno });
+export const renderTurnoDetalle = async (req, res, next) => {
+  try {
+    const turno = await Turno.findOne({ _id: req.params.id, activo: true })
+      .populate('clienteId')
+      .populate('vehiculoId')
+      .lean();
+    if (!turno) return res.status(404).render('404', { titulo: 'No encontrado', mensaje: 'Turno no encontrado' });
+    res.render('turnoDetalle', { turno });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const procesarNuevoTurno = async (req, res) => {
   await ejecutarAccion(crearTurno, req, res, '/turnos');
-};
-
-
-export const renderEditarCliente = async (req, res, next) => {  //busca el cliente en MongoDB y muestra el formulario con sus datos actuales
-  try {
-    const id = Number(req.params.id);
-    const cliente = await Cliente.findOne({ id }).lean();
-
-    res.render('editarCliente', { cliente });   
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const procesarModificarCliente = async (req, res) => {   //recibe los cambios del formulario y llama al controlador que actualiza el cliente
-  await ejecutarAccion(
-    modificarClientePorId,
-    req,
-    res,
-    '/clientes'
-  );
 };

@@ -1,18 +1,12 @@
-
 import mongoose from 'mongoose';
-
 const vehiculoSchema = new mongoose.Schema(
-    {
-        id: {
-            type: Number,
-            required: true,
-            unique: true
-        },
+    {       
         patente: {
             type: String,
             required: [true, 'La patente es obligatoria'],
             trim: true,
-            uppercase: true
+            uppercase: true,
+            unique: true
         },
         marca: {
             type: String,
@@ -25,16 +19,18 @@ const vehiculoSchema = new mongoose.Schema(
             trim: true
         },
         clienteId: {
-            type: Number,
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Cliente',
             required: [true, 'El ID del cliente es obligatorio']
+        },
+        // CAMPO DE ESTADO / SOFT DELETE:
+        activo: {
+            type: Boolean,
+            default: true
         }
     },
     {
-        timestamps: true,
-        id: false
+        timestamps: true                           
     }
 );
-
-const Vehiculo = mongoose.model('Vehiculo', vehiculoSchema);
-
-export default Vehiculo;
+export default mongoose.model('Vehiculo', vehiculoSchema);
