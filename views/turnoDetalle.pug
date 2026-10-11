@@ -36,7 +36,7 @@ block contenido
       .acciones-detalle
         button.boton-eliminar(
           type="button"
-          onclick=`cancelarTurno(${turno._id})`
+          onclick=`cancelarTurno('${turno._id}')`
         ) Cancelar turno
 
         a.volver(href="/turnos") Volver a turnos

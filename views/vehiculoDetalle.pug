@@ -32,7 +32,7 @@ block contenido
       .acciones-detalle
         button.boton-eliminar(
           type="button"
-          onclick=`eliminarVehiculo(${vehiculo._id})`
+          onclick=`eliminarVehiculo('${vehiculo._id}')`
         ) Eliminar vehículo
 
         a.volver(href="/vehiculos") Volver a vehículos
