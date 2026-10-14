@@ -1,155 +1,179 @@
-# AutoBox - Sistema de Gestión de Taller Mecánico (Trabajo Práctico Nº 1)
+# AutoBox — Sistema de Gestión de Taller Mecánico (Trabajo Práctico N.º 2)
 
-AutoBox es una aplicación web integral desarrollada con **Node.js** y **Express** bajo el patrón arquitectónico **MVC (Modelo-Vista-Controlador)**. Este repositorio contiene la resolución completa del trabajo práctico, estructurado mediante una solución híbrida: un frontend con renderizado del lado del servidor (SSR) usando plantillas **Pug** y una **API RESTful** en formato JSON.
+AutoBox es una aplicación web para administrar **clientes, vehículos y turnos** de un taller mecánico. Está desarrollada con **Node.js, Express y Pug**, siguiendo una organización **MVC (Modelo–Vista–Controlador)**. En el TP2 se incorporó **MongoDB mediante Mongoose** como persistencia principal, manteniendo una interfaz web renderizada en el servidor (SSR) y una API REST que devuelve JSON.
 
----
-
-## Mapeo de Consignas Académicas y Resoluciones
-
-A continuación se detalla cómo se resolvieron los requerimientos técnicos y funcionales solicitados en las consignas del proyecto:
-
-| Consignas / Requerimiento Académico | Resolución Implementada en el Proyecto | Archivos Asociados |
-| :--- | :--- | :--- |
-| **1. Arquitectura MVC** | Separación estricta de responsabilidades entre modelos de datos, controladores de negocio, enrutadores y vistas. | `models/`, `controllers/`, `routes/`, `views/` |
-| **2. Persistencia de Datos** | Almacenamiento local mediante archivos planos en formato JSON utilizando el módulo nativo de Node.js (`fs`). | `data/clientes.json`, `data/turnos.json`, `data/vehiculos.json` |
-| **3. Motor de Plantillas (SSR)** | Uso de **Pug** para la generación dinámica de la interfaz web, layouts reutilizables y paneles de control. | `views/layout.pug`, `views/index.pug`, `views/*.pug` |
-| **4. Enrutamiento Modular** | Separación de rutas por entidad (clientes, vehículos, turnos) y enrutador específico para vistas web. | `routes/clientesRoutes.js`, `routes/turnosRoutes.js`, `routes/vehiculosRoutes.js`, `routes/vistas.js` |
-| **5. Middleware** | `express.json()` para parsear el cuerpo de peticiones entrantes en formato JSON |
-| **6. Manejo de Errores y 404** | Interceptores dedicados para rutas inexistentes (con respuesta dual JSON/HTML) y controlador global de excepciones (500). | `middlewares/notFoundMiddleware.js`, `middlewares/errorHandler.js` |
+> **Evolución respecto del TP1:** el TP1 utilizaba archivos JSON. En el TP2 los modelos y las operaciones de persistencia trabajan con MongoDB y Mongoose. La carpeta `data/` todavía está presente en el repositorio como material heredado, pero no representa la persistencia principal del TP2.
 
 ---
 
-## Estructura del Directorio
+## Requerimientos y resolución técnica
+
+| Requerimiento | Implementación | Archivos |
+| --- | --- | --- |
+| Arquitectura modular MVC | Separación de modelos, controladores, rutas y vistas | `models/`, `controllers/`, `routes/`, `views/` |
+| Base de datos | Conexión a MongoDB con Mongoose mediante `MONGODB_URI` | `config/db.js`, `models/` |
+| Modelado y relaciones | Esquemas de Cliente, Vehículo y Turno; referencias `ObjectId` y consultas con `populate()` | `models/`, `controllers/` |
+| Operaciones CRUD | Endpoints REST por entidad y formularios web para operaciones implementadas | `routes/`, `controllers/` |
+| Vistas dinámicas | Plantillas Pug para listados, formularios y detalles | `views/` |
+| Middleware | Parseo JSON y formularios, sesiones, autenticación de vistas y manejo centralizado de errores | `app.js`, `middlewares/` |
+| Errores y rutas inexistentes | Middleware de errores y página 404 para rutas no encontradas | `middlewares/errorHandler.js`, `views/404.pug`, `app.js` |
+
+## Tecnologías
+
+- **Node.js** y **Express 5** para el servidor y las rutas.
+- **MongoDB** y **Mongoose 9** para persistencia, esquemas y relaciones.
+- **Pug 3** para renderizado SSR.
+- **express-session** para sesiones y middleware de autenticación de las vistas.
+- **dotenv** para leer variables de entorno.
+- **nodemon** para desarrollo.
+
+El proyecto utiliza módulos ECMAScript (`"type": "module"`). Las versiones concretas instaladas se determinan mediante `package-lock.json`.
+
+## Estructura del proyecto
 
 ```text
-TP1/
-├── app.js                          # Punto de entrada y configuración del servidor
-├── package.json                    # Dependencias y scripts del proyecto
-├── package-lock.json[cite: 3]
-├── controllers/                    # Lógica de negocio y renderizado
+BackEnd-TP2/
+├── app.js                    # Configuración e inicio del servidor
+├── config/
+│   └── db.js                 # Conexión con MongoDB
+├── controllers/
 │   ├── clientesController.js
-│   ├── turnosController.js
 │   ├── vehiculosController.js
+│   ├── turnosController.js
 │   └── vistasController.js
-├── data/                           # Almacenamiento persistente en JSON
-│   ├── clientes.json
-│   ├── turnos.json
-│   └── vehiculos.json
-├── models/                         # Clases y estructuras de datos
+├── models/
 │   ├── Cliente.js
-│   ├── Turno.js
-│   └── Vehiculo.js
-├── public/                         # Recursos estáticos de acceso público
-│   ├── css/styles.css
-│   ├── img/ (404.png, autobox-logo.png, hero-auto.png)
-│   └── js/main.js
-├── routes/                         # Enrutadores modulares (Web y API)
+│   ├── Vehiculo.js
+│   └── Turno.js
+├── routes/
 │   ├── clientesRoutes.js
-│   ├── turnosRoutes.js
 │   ├── vehiculosRoutes.js
+│   ├── turnosRoutes.js
 │   └── vistas.js
-└── views/                          # Plantillas de vistas Pug
-    ├── 404.pug
-    ├── index.pug
-    ├── layout.pug
-    └── *.pug (vistas de detalle y formularios)
-    ---
+├── middlewares/
+│   ├── auth.js
+│   └── errorHandler.js
+├── views/                    # Listados, formularios, detalles y login en Pug
+├── public/                   # CSS, JavaScript e imágenes
+├── data/                     # Archivos JSON heredados del TP1
+├── package.json
+└── README.md
+```
 
-## Características Implementadas
+## Modelos y relaciones
 
-1. **Programación Orientada a Objetos (POO):** Modelado estructurado a través de las clases `Cliente`, `Vehiculo` y `Turno` para instanciar objetos tipados antes de guardarlos en el sistema.
-2. **Persistencia en JSON:** Lectura y escritura sincronizada y segura de archivos JSON, con validación de existencia previa mediante `fs.existsSync` y autoincremento dinámico de identificadores (`id`).
-3. **Rutas Dinámicas:** Uso de parámetros de ruta (`/:id`) para realizar consultas, modificaciones y bajas puntuales sobre cada recurso.
-4. **Middlewares:**
-   * `express.json()` para parsear el cuerpo de peticiones entrantes en formato JSON.
-5. **Motor de Plantillas Pug:** Renderizado dinámico con layout persistente (`sidebar`), tablas interactivas de datos y formularios para la gestión del taller mecánico.
+- **Cliente:** nombre, apellido, teléfono, email y estado `activo`.
+- **Vehículo:** patente, marca, modelo, estado `activo` y `clienteId`, referencia a `Cliente`.
+- **Turno:** `clienteId`, `vehiculoId`, fecha, hora, servicio y estado `activo`.
 
----
+Los tres esquemas incluyen marcas de tiempo (`timestamps`). MongoDB genera identificadores de tipo `ObjectId`. Las vistas pueden mostrar datos de las entidades relacionadas mediante consultas que recuperan las referencias correspondientes.
 
-## Endpoints de la API REST
+## Endpoints REST
 
-**Módulo Clientes (/clientes o /api/clientes)**
-* `GET /` - Listar todos los clientes.
-* `GET /:id` - Consultar un cliente por su ID.
-* `POST /` - Dar de alta un nuevo cliente (genera ID automático).
-* `PUT /:id` - Modificar un cliente existente.
-* `DELETE /:id` - Eliminar un cliente por su ID.
+Los siguientes endpoints se encuentran definidos en los archivos de rutas y se montan bajo el prefijo `/api`.
 
-**Módulo Vehículos (/vehiculos o /api/vehiculos)**
-* `GET /` - Listar todos los vehículos.
-* `GET /:id` - Consultar un vehículo por su ID.
-* `POST /` - Registrar un nuevo vehículo asociado a un clienteId.
-* `PUT /:id` - Actualizar los datos de un vehículo.
-* `DELETE /:id` - Eliminar un vehículo por su ID.
+| Método | Clientes | Vehículos | Turnos |
+| --- | --- | --- | --- |
+| GET | `/api/clientes` | `/api/vehiculos` | `/api/turnos` |
+| GET por ID | `/api/clientes/:id` | `/api/vehiculos/:id` | `/api/turnos/:id` |
+| POST | `/api/clientes` | `/api/vehiculos` | `/api/turnos` |
+| PUT | `/api/clientes/:id` | `/api/vehiculos/:id` | `/api/turnos/:id` |
+| DELETE | `/api/clientes/:id` | `/api/vehiculos/:id` | `/api/turnos/:id` |
 
-**Módulo Turnos (/turnos o /api/turnos)**
-* `GET /` - Listar todos los turnos registrados.
-* `GET /:id` - Consultar un turno puntual por su ID.
-* `POST /` - Asignar un nuevo turno en el taller.
-* `PUT /:id` - Modificar los datos o servicio de un turno.
-* `DELETE /:id` - Cancelar o eliminar un turno por su ID.
+La aplicación también dispone de rutas web para inicio de sesión, inicio, clientes, vehículos y turnos, con formularios y pantallas de detalle. **Las rutas web y las rutas API no son equivalentes:** las primeras renderizan Pug y las segundas exponen operaciones REST.
 
----
+## Instalación y ejecución
 
-## Instalación y Puesta en Marcha
+**Requisitos:** Node.js y una instancia de MongoDB accesible, por ejemplo MongoDB Community Server local.
 
-1. Clonar el repositorio:
-   git clone <URL_DEL_REPOSITORIO>
+1. Clonar el repositorio y entrar a la carpeta:
 
-2. Ingresar a la carpeta del proyecto:
-   cd TP1
+   ```bash
+   git clone https://github.com/TinchoHub/BackEnd-TP2.git
+   cd BackEnd-TP2
+   ```
 
-3. Instalar las dependencias necesarias:
+2. Instalar dependencias:
+
+   ```bash
    npm install
+   ```
 
-4. Iniciar el servidor en modo desarrollo:
-   npx nodemon app.js
+3. Crear un archivo `.env` en la raíz del proyecto, con valores apropiados para el entorno:
 
-5. Acceso al sistema:
-   Abrir el navegador web e ingresar a: http://localhost:3000
+   ```dotenv
+   MONGODB_URI=mongodb://127.0.0.1:27017/autobox
+   SESSION_SECRET=reemplazar-por-una-clave-privada-segura
+   PORT=3000
+   ```
 
----
+   La base de datos y el puerto mostrados son **valores de ejemplo**. No subir `.env` ni credenciales privadas al repositorio.
 
-## Integrantes y Roles del Proyecto
+4. Asegurarse de que MongoDB esté ejecutándose y levantar la aplicación:
 
-* **Dalila — Módulo Clientes:**
-  * Creación de la clase `Cliente`.
-  * Creación y administración del archivo `clientes.json`.
-  * Implementación de la lógica del controlador para listar, consultar, agregar, modificar y eliminar clientes.
-  * Ejecución de pruebas unitarias y de endpoints del módulo.
+   ```bash
+   npm run dev
+   ```
 
-* **Jorge — Módulo Vehículos:**
-  * Creación de la clase `Vehiculo`.
-  * Creación y administración del archivo `vehiculos.json`.
-  * Implementación de funciones para registrar, consultar, modificar y dar de baja vehículos.
-  * Vinculación lógica de vehículos con su respectivo `clienteId`.
-  * Pruebas y validación del módulo de vehículos.
+   Alternativamente, usar `npm start` para ejecutar `node app.js`.
 
-* **Luis — Módulo Turnos:**
-  * Creación de la clase `Turno`.
-  * Creación y administración del archivo `turnos.json`.
-  * Implementación de la lógica para registrar, consultar, actualizar y cancelar turnos del taller.
-  * Relación e integridad de datos entre turnos, clientes y vehículos.
-  * Pruebas del ciclo de vida del turno.
+5. Abrir `http://localhost:3000` en el navegador. La interfaz dispone de inicio de sesión de prueba definido en `routes/vistas.js`; **no es un sistema de autenticación preparado para producción**.
 
-* **Martín — Express y Middleware:**
-  * Configuración general de la arquitectura del servidor con Node.js y Express.
-  * Configuración de rutas y vinculación de endpoints con sus controladores.
-  * Configuración y estandarización del uso de rutas dinámicas (`/:id`).
-  * Integración modular y resolución de consistencia entre los componentes del backend.
+## Pruebas funcionales y evidencias
 
-* **Martina — Vistas Pug e Integración:**
-  * Construcción de la interfaz de usuario y vistas SSR utilizando el motor Pug.
-  * Visualización y renderizado dinámico de los listados y detalles de clientes, vehículos y turnos.
-  * Conexión fluida entre las vistas de usuario y las rutas/controladores del sistema.
-  * Pruebas generales de navegación en el navegador web.
-  * Captura, organización y documentación de evidencias visuales para la entrega.
+Durante la integración de las vistas se realizaron las siguientes comprobaciones manuales en el navegador, utilizando MongoDB local:
 
----
+| Prueba | Resultado observado |
+| --- | --- |
+| Registro de un cliente | Registro y visualización correctos |
+| Edición de datos de cliente | Actualización correcta |
+| Registro de vehículo asociado a cliente | Registro y asociación correctos |
+| Registro de turno asociado a cliente y vehículo | Registro y asociación correctos |
+| Listado y detalle de turnos | Se visualizan cliente, vehículo, fecha, hora y servicio |
+| Cancelación de turno | Operación completada correctamente |
+| Intento de eliminar un vehículo con turnos asociados | El sistema impidió la eliminación |
+| Listado y detalle de vehículos | Se visualizan los datos y el propietario asociado |
 
-## Bibliografía y Documentación Consultada
+**Evidencias visuales recopiladas:** listado de turnos, detalle de turno, listado de clientes, listado de vehículos y detalle de vehículo. Las capturas deben incorporarse al repositorio en una carpeta de evidencias antes de enlazarlas desde este documento.
 
-* Express.js - Documentación Oficial: https://expressjs.com/
-* Node.js Documentation - Módulo File System (fs): https://nodejs.org/api/fs.html
-* Pug Getting Started & Syntax Guide: https://pugjs.org/
-* MDN Web Docs - Métodos HTTP y Códigos de Estado de Respuesta: https://developer.mozilla.org/es/docs/Web/HTTP
+Estas son **pruebas manuales de integración**, no una afirmación de cobertura automatizada de todos los endpoints.
+
+## Integrantes y responsabilidades
+
+### Dalila — Módulo Clientes
+- Desarrollo y mantenimiento del modelo Mongoose de Cliente.
+- Operaciones de alta, consulta, modificación y baja de clientes.
+- Validaciones y pruebas del módulo de clientes.
+
+### Jorge — Módulo Vehículos
+- Desarrollo y mantenimiento del modelo Mongoose de Vehículo.
+- Operaciones de gestión de vehículos.
+- Asociación de vehículos con clientes y verificaciones de integridad.
+
+### Luis — Módulo Turnos
+- Desarrollo y mantenimiento del modelo Mongoose de Turno.
+- Operaciones de registro, consulta, actualización y cancelación de turnos.
+- Relaciones entre turnos, clientes y vehículos.
+
+### Martín — Configuración e integración del servidor
+- Configuración de Express y conexión con MongoDB.
+- Integración de rutas, middleware y manejo de errores.
+- Coordinación de la estructura modular del backend.
+
+### Martina Bistagnino — Vistas Pug e Integración
+- Adaptación de las vistas para mostrar datos de MongoDB y relaciones entre entidades.
+- Actualización de `views/nuevoTurno.pug`, `views/turnoDetalle.pug`, `views/turnos.pug`, `views/vehiculoDetalle.pug` y `views/vehiculos.pug`.
+- Corrección de indentación y estructura en plantillas Pug.
+- Presentación abreviada de identificadores de MongoDB en listados.
+- Pruebas manuales de navegación, registro, edición, cancelación y restricciones de eliminación.
+- Recolección de capturas para documentar la integración.
+- **Commit:** `e060941` — `feat: adaptar vistas Pug e integracion con MongoDB`.
+
+## Documentación consultada
+
+- [Node.js](https://nodejs.org/docs/latest/api/)
+- [Express](https://expressjs.com/)
+- [MongoDB](https://www.mongodb.com/docs/)
+- [Mongoose](https://mongoosejs.com/docs/)
+- [Pug](https://pugjs.org/)
+- [MDN Web Docs](https://developer.mozilla.org/es/docs/Web/HTTP)
