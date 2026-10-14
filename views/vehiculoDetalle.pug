@@ -1,3 +1,4 @@
+
 extends layout
 
 block contenido
@@ -26,8 +27,11 @@ block contenido
         |  #{vehiculo.modelo}
 
       p
-        strong Cliente ID:
-        |  #{vehiculo.clienteId}
+        strong Propietario:
+        if vehiculo.clienteId
+          |  #{vehiculo.clienteId.nombre} #{vehiculo.clienteId.apellido}
+        else
+          |  Cliente no disponible
 
       .acciones-detalle
         button.boton-eliminar(

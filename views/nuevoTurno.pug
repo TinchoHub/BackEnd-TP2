@@ -35,7 +35,7 @@ block contenido
         each vehiculo in vehiculos
           option(
             value=vehiculo._id
-            data-cliente-id=vehiculo.clienteId
+            data-cliente-id=vehiculo.clienteId.toString()
           ) #{vehiculo.patente} - #{vehiculo.marca} #{vehiculo.modelo}
 
     .campo

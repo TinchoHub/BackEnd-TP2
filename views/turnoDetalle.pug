@@ -1,3 +1,4 @@
+
 extends layout
 
 block contenido
@@ -14,12 +15,25 @@ block contenido
         |  #{turno._id}
 
       p
-        strong Cliente ID:
-        |  #{turno.clienteId}
+        strong Cliente:
+        if turno.clienteId
+          |  #{turno.clienteId.nombre} #{turno.clienteId.apellido}
+        else
+          |  Cliente no disponible
 
       p
-        strong Vehículo ID:
-        |  #{turno.vehiculoId}
+        strong Vehículo:
+        if turno.vehiculoId
+          |  #{turno.vehiculoId.marca} #{turno.vehiculoId.modelo}
+        else
+          |  Vehículo no disponible
+
+      p
+        strong Patente:
+        if turno.vehiculoId
+          |  #{turno.vehiculoId.patente}
+        else
+          |  No disponible
 
       p
         strong Fecha:

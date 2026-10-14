@@ -1,3 +1,4 @@
+
 extends layout
 
 block contenido
@@ -16,7 +17,6 @@ block contenido
 
     a.boton(href="/turnos/nuevo") + Nuevo turno
 
-
   .module-toolbar
 
     .search-box
@@ -34,7 +34,6 @@ block contenido
     .module-count
       span= turnos.length
       |  turnos registrados
-
 
   .table-card
 
@@ -55,10 +54,19 @@ block contenido
           each turno in turnos
             tr
               td
-                span.id-badge= turno._id
+                span.id-badge= turno._id.toString().slice(-6)
 
-              td= turno.clienteId
-              td= turno.vehiculoId
+              td
+                if turno.clienteId
+                  | #{turno.clienteId.nombre} #{turno.clienteId.apellido}
+                else
+                  | Cliente no disponible
+
+              td
+                if turno.vehiculoId
+                  | #{turno.vehiculoId.patente} - #{turno.vehiculoId.marca} #{turno.vehiculoId.modelo}
+                else
+                  | Vehículo no disponible
 
               td
                 strong= turno.fecha
