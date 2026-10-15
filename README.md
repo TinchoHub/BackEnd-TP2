@@ -59,14 +59,14 @@ BackEnd-TP2/
 ├── package.json
 └── README.md
 ```
-
 ## Modelos y relaciones
 
-- **Cliente:** nombre, apellido, teléfono, email y estado `activo`.
-- **Vehículo:** patente, marca, modelo, estado `activo` y `clienteId`, referencia a `Cliente`.
-- **Turno:** `clienteId`, `vehiculoId`, fecha, hora, servicio y estado `activo`.
+* **Cliente:** nombre, apellido, teléfono, email y estado `activo`.
+* **Vehículo:** patente, marca, modelo, estado `activo` y `clienteId` (referencia a `Cliente`).
+* **Turno:** `clienteId` (referencia a `Cliente`), `vehiculoId` (referencia a `Vehiculo`), fecha, hora, servicio y estado `activo`
+*  para implementar borrado lógico (`soft delete`).
 
-Los tres esquemas incluyen marcas de tiempo (`timestamps`). MongoDB genera identificadores de tipo `ObjectId`. Las vistas pueden mostrar datos de las entidades relacionadas mediante consultas que recuperan las referencias correspondientes.
+Los tres esquemas incluyen marcas de tiempo (`timestamps`). MongoDB genera identificadores de tipo `ObjectId`. Las vistas y las respuestas de la API recuperan las entidades relacionadas mediante consultas que ejecutan `.populate()` sobre las referencias correspondientes (`clienteId` y `vehiculoId`).
 
 ## Endpoints REST
 
@@ -151,9 +151,10 @@ Estas son **pruebas manuales de integración**, no una afirmación de cobertura 
 - Asociación de vehículos con clientes y verificaciones de integridad.
 
 ### Luis — Módulo Turnos
-- Desarrollo y mantenimiento del modelo Mongoose de Turno.
+- Desarrollo y mantenimiento del modelo Mongoose de Turno (incluyendo borrado lógico mediante el campo `activo`).
 - Operaciones de registro, consulta, actualización y cancelación de turnos.
-- Relaciones entre turnos, clientes y vehículos.
+- Relaciones entre turnos, clientes y vehículos mediante `ObjectId` y consultas con `.populate()`.
+- Implementación de validaciones en el esquema (campos obligatorios de fecha/hora y mínimo de caracteres en servicio).
 
 ### Martín — Configuración e integración del servidor
 - Configuración de Express y conexión con MongoDB.
