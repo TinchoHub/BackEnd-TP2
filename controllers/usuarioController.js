@@ -8,14 +8,17 @@ export const listarUsuarios = async (req, res, next) => {
         res.render('usuarios', {
             titulo: 'Usuarios - AutoBox',
             usuarios,
-            exito: req.query.exito === 'creado' ? 'Usuario registrado con éxito.' : null
+            query: req.query,
+            exito: req.query.exito === 'creado' ? 'Usuario registrado con éxito.'
+                : req.query.exito === 'eliminado' ? 'Usuario dado de baja correctamente.'
+                : null
         });
     } catch (error) {
         next(error);
     }
 };
 
-// POST /usuarios/:id/eliminar
+// POST /usuarios/:id/eliminar (baja lógica, igual que el resto de las entidades)
 export const eliminarUsuario = async (req, res, next) => {
     try {
         const { id } = req.params;
@@ -25,13 +28,20 @@ export const eliminarUsuario = async (req, res, next) => {
             return res.redirect('/usuarios?error=autodelete');
         }
 
-        // Buscar y eliminar en BD
-        const usuarioEliminado = await Usuario.findByIdAndDelete(id);
-
-        if (!usuarioEliminado) {
+        const usuario = await Usuario.findById(id);
+        if (!usuario) {
             return res.redirect('/usuarios?error=notfound');
         }
 
+        // Nunca dejar el sistema sin un administrador activo
+        if (usuario.rol === 'admin' && usuario.activo) {
+            const adminsActivos = await Usuario.countDocuments({ rol: 'admin', activo: true });
+            if (adminsActivos <= 1) {
+                return res.redirect('/usuarios?error=ultimoadmin');
+            }
+        }
+
+        await Usuario.findByIdAndUpdate(id, { activo: false });
         res.redirect('/usuarios?exito=eliminado');
     } catch (error) {
         next(error);

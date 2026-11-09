@@ -29,6 +29,19 @@ const errorHandler = (err, req, res, next) => {
         mensaje = `El elemento solicitado con ID '${err.value}' no tiene un formato válido.`;
     }
 
+    // En producción no se expone el detalle interno de errores 500
+    if (statusCode >= 500 && process.env.NODE_ENV === 'production') {
+        mensaje = "Ocurrió un error inesperado al procesar la solicitud.";
+    }
+
+    // La API REST responde JSON; las vistas web renderizan Pug
+    if (req.originalUrl.startsWith('/api')) {
+        return res.status(statusCode).json({
+            mensaje,
+            ...(detalles.length > 0 && { detalles })
+        });
+    }
+
     // Renderizar la vista pasando las variables a Pug
     res.status(statusCode).render("404", {
         titulo,

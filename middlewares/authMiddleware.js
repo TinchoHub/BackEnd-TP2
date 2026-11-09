@@ -1,54 +1,31 @@
-import jwt from "jsonwebtoken";
-import Usuario from "../models/Usuario.js";
+// app.js valida el JWT en cada request y carga req.usuario (o lo deja sin definir).
+// Estos middlewares solo consultan ese resultado: no repiten la consulta a MongoDB.
 
-const protegerRuta = async (req, res, next) => {
-  try {
-    const token = req.cookies.token;
-
-    if (!token) {
-      return res.redirect("/login");
-    }
-
-    const payload = jwt.verify(
-      token,
-      process.env.JWT_SECRET
-    );
-
-    const usuario = await Usuario.findById(payload.id);
-
-    if (!usuario || !usuario.activo) {
-      res.clearCookie("token");
-      return res.redirect("/login");
-    }
-
-    req.usuario = usuario;
-
-    next();
-  } catch (error) {
-    res.clearCookie("token");
-    return res.redirect("/login");
-  }
+// Vistas web: sin sesión válida, redirige al login
+const protegerRuta = (req, res, next) => {
+  if (!req.usuario) return res.redirect("/login");
+  next();
 };
 
-// Middleware para restringir acceso exclusivamente a rol 'admin'
-const esAdmin = async (req, res, next) => {
-  // 1. Si no pasó por protegerRuta antes, verificamos si existe req.usuario
+// API REST: sin sesión válida, responde 401 en JSON (no redirige)
+const protegerApi = (req, res, next) => {
   if (!req.usuario) {
-    return protegerRuta(req, res, () => esAdmin(req, res, next));
+    return res.status(401).json({ mensaje: "Autenticación requerida" });
   }
+  next();
+};
 
-  // 2. Comprobar si el rol es 'admin'
+// Restringe el acceso exclusivamente al rol 'admin'
+const esAdmin = (req, res, next) => {
+  if (!req.usuario) return res.redirect("/login");
+
   if (req.usuario.rol !== "admin") {
     return res.status(403).render("404", {
       titulo: "Acceso Denegado",
       mensaje: "No tenés permisos de administrador para gestionar usuarios."
     });
   }
-
   next();
 };
 
-export {
-  protegerRuta,
-  esAdmin
-};
+export { protegerRuta, protegerApi, esAdmin };

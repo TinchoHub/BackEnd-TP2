@@ -12,6 +12,7 @@ import usuarioRoutes from './routes/usuarioRoutes.js';
 
 import conectarDB from './config/db.js';
 import errorHandler from './middlewares/errorHandler.js';
+import { protegerApi } from './middlewares/authMiddleware.js';
 
 import clientesRutas from './routes/clientesRoutes.js';
 import vehiculosRutas from './routes/vehiculosRoutes.js';
@@ -73,9 +74,10 @@ io.on('connection', (socket) => {
 });
 
 // Rutas
-app.use('/api/clientes', clientesRutas);
-app.use('/api/vehiculos', vehiculosRutas);
-app.use('/api/turnos', turnosRutas);
+// La API REST exige sesión válida (JWT en cookie); /api/ia lo valida en su propio router
+app.use('/api/clientes', protegerApi, clientesRutas);
+app.use('/api/vehiculos', protegerApi, vehiculosRutas);
+app.use('/api/turnos', protegerApi, turnosRutas);
 app.use('/api/ia', iaRutas);
 app.use('/usuarios', usuarioRoutes);
 app.use('/', vistasRutas);

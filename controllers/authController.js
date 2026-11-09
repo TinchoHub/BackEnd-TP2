@@ -58,6 +58,7 @@ export const procesarLogin = async (req, res, next) => {
         // 2. Guardar el token en la cookie (reemplaza a req.session.usuario)
         res.cookie('token', token, {
             httpOnly: true, // Protege contra ataques XSS
+            sameSite: 'lax', // Mitiga CSRF: la cookie no viaja en POST de otros sitios
             secure: process.env.NODE_ENV === 'production',
             maxAge: 2 * 60 * 60 * 1000 // 2 horas
         });

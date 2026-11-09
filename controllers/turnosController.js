@@ -87,27 +87,33 @@ export const crearTurno = async (req, res, next) => {
 // ACTUALIZAR TURNO
 export const actualizarTurno = async (req, res, next) => {
     try {
-        const { clienteId, vehiculoId } = req.body;
-        if (clienteId && vehiculoId) {
-            const vehiculo = await Vehiculo.findOne({ _id: vehiculoId, activo: true });
-            if (!vehiculo || vehiculo.clienteId.toString() !== clienteId.toString()) {
-                return res.status(400).json({
-                    mensaje: 'El vehículo seleccionado no pertenece al cliente indicado'
-                });
-            }
-        }
-
-        const turnoActualizado = await Turno.findOneAndUpdate(
-            { _id: req.params.id, activo: true },
-            req.body,
-            { new: true, runValidators: true }
-        );
-
-        if (!turnoActualizado) {
+        const turno = await Turno.findOne({ _id: req.params.id, activo: true });
+        if (!turno) {
             return res.status(404).json({ mensaje: 'Turno no encontrado para actualizar' });
         }
 
-        res.json({ mensaje: 'Turno actualizado con éxito', turno: turnoActualizado });
+        // Lista blanca: campos como 'activo' no se pueden modificar desde el body
+        const camposPermitidos = ['clienteId', 'vehiculoId', 'fecha', 'hora', 'servicio'];
+        for (const campo of camposPermitidos) {
+            if (req.body[campo] !== undefined) turno[campo] = req.body[campo];
+        }
+
+        // Se valida sobre los valores finales, aunque llegue solo uno de los dos IDs
+        const [cliente, vehiculo] = await Promise.all([
+            Cliente.findOne({ _id: turno.clienteId, activo: true }),
+            Vehiculo.findOne({ _id: turno.vehiculoId, activo: true })
+        ]);
+        if (!cliente || !vehiculo) {
+            return res.status(400).json({ mensaje: 'El cliente o el vehículo no existe o está inactivo' });
+        }
+        if (vehiculo.clienteId.toString() !== turno.clienteId.toString()) {
+            return res.status(400).json({
+                mensaje: 'El vehículo seleccionado no pertenece al cliente indicado'
+            });
+        }
+
+        await turno.save(); // ejecuta las validaciones del esquema
+        res.json({ mensaje: 'Turno actualizado con éxito', turno });
     } catch (error) {
         next(error);
     }

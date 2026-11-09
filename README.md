@@ -1,76 +1,77 @@
-# AutoBox — Sistema de Gestión de Taller Mecánico (Trabajo Práctico N.º 2)
+# AutoBox — Gestión de Turnos y Atención de Clientes (Versión 1.1)
 
-AutoBox es una aplicación web para administrar **clientes, vehículos y turnos** de un taller mecánico. Está desarrollada con **Node.js, Express y Pug**, siguiendo una organización **MVC (Modelo–Vista–Controlador)**. En el TP2 se incorporó **MongoDB mediante Mongoose** como persistencia principal, manteniendo una interfaz web renderizada en el servidor (SSR) y una API REST que devuelve JSON.
+Aplicación web para administrar **clientes, vehículos y turnos** de un taller mecánico multimarca. Está desarrollada con **Node.js, Express y Pug**, con arquitectura **MVC**, persistencia en **MongoDB (Mongoose)**, interfaz renderizada en el servidor (SSR) y una API REST que responde JSON.
 
-> **Evolución respecto del TP1:** el TP1 utilizaba archivos JSON. En el TP2 los modelos y las operaciones de persistencia trabajan con MongoDB y Mongoose. La carpeta `data/` todavía está presente en el repositorio como material heredado, pero no representa la persistencia principal del TP2.
-
----
-
-## Requerimientos y resolución técnica
-
-| Requerimiento | Implementación | Archivos |
-| --- | --- | --- |
-| Arquitectura modular MVC | Separación de modelos, controladores, rutas y vistas | `models/`, `controllers/`, `routes/`, `views/` |
-| Base de datos | Conexión a MongoDB con Mongoose mediante `MONGODB_URI` | `config/db.js`, `models/` |
-| Modelado y relaciones | Esquemas de Cliente, Vehículo y Turno; referencias `ObjectId` y consultas con `populate()` | `models/`, `controllers/` |
-| Operaciones CRUD | Endpoints REST por entidad y formularios web para operaciones implementadas | `routes/`, `controllers/` |
-| Vistas dinámicas | Plantillas Pug para listados, formularios y detalles | `views/` |
-| Middleware | Parseo JSON y formularios, sesiones, autenticación de vistas y manejo centralizado de errores | `app.js`, `middlewares/` |
-| Errores y rutas inexistentes | Middleware de errores y página 404 para rutas no encontradas | `middlewares/errorHandler.js`, `views/404.pug`, `app.js` |
+> **Evolución:** en el TP1 los datos se guardaban en archivos JSON. En el TP2 se migró a MongoDB y en esta versión (1.1) se incorporaron autenticación con JWT, roles, usuarios, notificaciones en tiempo real y un asesor con IA.
 
 ## Tecnologías
 
-- **Node.js** y **Express 5** para el servidor y las rutas.
-- **MongoDB** y **Mongoose 9** para persistencia, esquemas y relaciones.
-- **Pug 3** para renderizado SSR.
-- **express-session** para sesiones y middleware de autenticación de las vistas.
-- **dotenv** para leer variables de entorno.
-- **nodemon** para desarrollo.
+- **Node.js** y **Express 5** (módulos ES).
+- **MongoDB** y **Mongoose 9** (local o Atlas).
+- **Pug** para las vistas SSR.
+- **jsonwebtoken + cookie-parser + bcryptjs** para autenticación.
+- **socket.io** para notificaciones en tiempo real.
+- **@google/generative-ai (Gemini)** para el asesor técnico.
+- **dotenv** para variables de entorno y **nodemon** (solo desarrollo).
 
-El proyecto utiliza módulos ECMAScript (`"type": "module"`). Las versiones concretas instaladas se determinan mediante `package-lock.json`.
+## Decisiones técnicas (qué se usó y qué se reemplazó)
+
+- **JWT en cookie `httpOnly` en lugar de `express-session`:** en el TP2 se usaron sesiones en memoria del servidor. Se reemplazaron por JWT porque no dependen del estado del servidor (facilitan el despliegue y el escalado) y permiten llevar el rol en el token. La cookie usa `httpOnly` (protege de XSS), `sameSite: 'lax'` (mitiga CSRF) y `secure` en producción. Las contraseñas se guardan con **bcrypt**.
+- **Un único punto de verificación:** `app.js` valida el token en cada request y carga `req.usuario`. Los middlewares `protegerRuta` (vistas → redirige a `/login`), `protegerApi` (API → responde `401` en JSON) y `esAdmin` solo consultan ese resultado, sin repetir consultas a la base.
+- **Borrado lógico en todas las entidades** (campo `activo`), incluidos los usuarios, para conservar la trazabilidad. Nunca se puede dejar el sistema sin un administrador activo.
+- **Errores centralizados:** `errorHandler.js` devuelve JSON para rutas `/api` y una vista para las rutas web. En producción no expone el detalle de errores 500.
 
 ## Estructura del proyecto
 
 ```text
-BackEnd-TP2/
-├── app.js                    # Configuración e inicio del servidor
-├── config/
-│   └── db.js                 # Conexión con MongoDB
-├── controllers/
-│   ├── clientesController.js
-│   ├── vehiculosController.js
-│   ├── turnosController.js
-│   └── vistasController.js
-├── models/
-│   ├── Cliente.js
-│   ├── Vehiculo.js
-│   └── Turno.js
-├── routes/
-│   ├── clientesRoutes.js
-│   ├── vehiculosRoutes.js
-│   ├── turnosRoutes.js
-│   └── vistas.js
-├── middlewares/
-│   ├── auth.js
-│   └── errorHandler.js
-├── views/                    # Listados, formularios, detalles y login en Pug
-├── public/                   # CSS, JavaScript e imágenes
-├── data/                     # Archivos JSON heredados del TP1
-├── package.json
-└── README.md
+├── app.js                  # Servidor, middlewares globales, rutas y WebSockets
+├── config/db.js            # Conexión con MongoDB
+├── controllers/            # Lógica de aplicación (clientes, vehículos, turnos, usuarios, auth, vistas, IA)
+├── middlewares/            # authMiddleware.js, errorHandler.js
+├── models/                 # Cliente, Vehiculo, Turno, Usuario
+├── routes/                 # Rutas API (/api/...) y rutas web
+├── services/               # Integración con Gemini
+├── prompts/asesor.txt      # Instrucciones del asesor técnico
+├── scripts/seed.js         # Crea el primer administrador
+├── views/  public/         # Plantillas Pug, CSS, JS cliente e imágenes
+└── .env.example            # Plantilla de variables de entorno
 ```
-## Modelos y relaciones
 
-* **Cliente:** nombre, apellido, teléfono, email y estado `activo`.
-* **Vehículo:** patente, marca, modelo, estado `activo` y `clienteId` (referencia a `Cliente`).
-* **Turno:** `clienteId` (referencia a `Cliente`), `vehiculoId` (referencia a `Vehiculo`), fecha, hora, servicio y estado `activo`
-*  para implementar borrado lógico (`soft delete`).
+## Variables de entorno
 
-Los tres esquemas incluyen marcas de tiempo (`timestamps`). MongoDB genera identificadores de tipo `ObjectId`. Las vistas y las respuestas de la API recuperan las entidades relacionadas mediante consultas que ejecutan `.populate()` sobre las referencias correspondientes (`clienteId` y `vehiculoId`).
+Copiar `.env.example` a `.env` y completar:
 
-## Endpoints REST
+| Variable | Uso |
+| --- | --- |
+| `MONGODB_URI` | Conexión a MongoDB (local o Atlas) |
+| `JWT_SECRET` | Clave para firmar los tokens |
+| `GEMINI_API_KEY` | Clave de la API de Gemini (asesor con IA) |
+| `GEMINI_MODEL` | Opcional: nombre del modelo de Gemini |
+| `PORT`, `NODE_ENV` | Puerto y entorno (`production` activa cookies `secure`) |
+| `SEED_ADMIN_USER`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME` | Datos del primer administrador (solo para `npm run seed`) |
 
-Los siguientes endpoints se encuentran definidos en los archivos de rutas y se montan bajo el prefijo `/api`.
+## Instalación y ejecución
+
+```bash
+git clone https://github.com/TinchoHub/BackEnd-TP2.git
+cd BackEnd-TP2
+npm install
+cp .env.example .env     # completar los valores
+npm run seed             # crea el primer administrador (solo si no existe ninguno)
+npm run dev              # desarrollo (o npm start)
+```
+
+Abrir `http://localhost:3000` e iniciar sesión con el administrador creado por el seed. Desde **Usuarios** el administrador puede dar de alta operadores.
+
+## Roles y acceso
+
+| Recurso | Sin sesión | Operador | Admin |
+| --- | --- | --- | --- |
+| Vistas web (`/`, `/clientes`, `/vehiculos`, `/turnos`, `/asistente`) | Redirige a `/login` | Sí | Sí |
+| API REST (`/api/clientes`, `/api/vehiculos`, `/api/turnos`, `/api/ia`) | `401` JSON | Sí | Sí |
+| Gestión de usuarios (`/usuarios`) | Redirige a `/login` | `403` | Sí |
+
+## Endpoints REST (requieren sesión)
 
 | Método | Clientes | Vehículos | Turnos |
 | --- | --- | --- | --- |
@@ -78,46 +79,11 @@ Los siguientes endpoints se encuentran definidos en los archivos de rutas y se m
 | GET por ID | `/api/clientes/:id` | `/api/vehiculos/:id` | `/api/turnos/:id` |
 | POST | `/api/clientes` | `/api/vehiculos` | `/api/turnos` |
 | PUT | `/api/clientes/:id` | `/api/vehiculos/:id` | `/api/turnos/:id` |
-| DELETE | `/api/clientes/:id` | `/api/vehiculos/:id` | `/api/turnos/:id` |
+| DELETE (baja lógica) | `/api/clientes/:id` | `/api/vehiculos/:id` | `/api/turnos/:id` |
 
-La aplicación también dispone de rutas web para inicio de sesión, inicio, clientes, vehículos y turnos, con formularios y pantallas de detalle. **Las rutas web y las rutas API no son equivalentes:** las primeras renderizan Pug y las segundas exponen operaciones REST.
+Además: `POST /api/ia/consultar` (asesor técnico). Al crear o cancelar un turno el servidor emite por WebSocket los eventos `turno:creado` y `turno:cancelado`.
 
-## Instalación y ejecución
-
-**Requisitos:** Node.js y una instancia de MongoDB accesible, por ejemplo MongoDB Community Server local.
-
-1. Clonar el repositorio y entrar a la carpeta:
-
-   ```bash
-   git clone https://github.com/TinchoHub/BackEnd-TP2.git
-   cd BackEnd-TP2
-   ```
-
-2. Instalar dependencias:
-
-   ```bash
-   npm install
-   ```
-
-3. Crear un archivo `.env` en la raíz del proyecto, con valores apropiados para el entorno:
-
-   ```dotenv
-   MONGODB_URI=mongodb://127.0.0.1:27017/autobox
-   SESSION_SECRET=reemplazar-por-una-clave-privada-segura
-   PORT=3000
-   ```
-
-   La base de datos y el puerto mostrados son **valores de ejemplo**. No subir `.env` ni credenciales privadas al repositorio.
-
-4. Asegurarse de que MongoDB esté ejecutándose y levantar la aplicación:
-
-   ```bash
-   npm run dev
-   ```
-
-   Alternativamente, usar `npm start` para ejecutar `node app.js`.
-
-5. Abrir `http://localhost:3000` en el navegador. La interfaz dispone de inicio de sesión de prueba definido en `routes/vistas.js`; **no es un sistema de autenticación preparado para producción**.
+Reglas de integridad: no se elimina un cliente con vehículos activos, no se elimina un vehículo con turnos activos y el vehículo de un turno debe pertenecer al cliente indicado (también al modificar).
 
 ## Pruebas funcionales y evidencias
 

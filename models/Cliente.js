@@ -23,7 +23,7 @@ const clienteSchema = new mongoose.Schema(
             unique: true,
             lowercase: true,
             match: [
-                /^[^\s@]+@[^\s@]+.[^\s@]+$/,
+                /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                 'Ingresá un email válido'
             ]
         },
