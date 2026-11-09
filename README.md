@@ -108,6 +108,35 @@ Además: `POST /api/ia/consultar` (asesor técnico). Al crear o cancelar un turn
 
 Reglas de integridad: no se elimina un cliente con vehículos activos, no se elimina un vehículo con turnos activos y el vehículo de un turno debe pertenecer al cliente indicado (también al modificar).
 
+## Pruebas automatizadas
+
+Se usa el ejecutor de pruebas nativo de Node (`node:test`), sin dependencias adicionales: `npm test`.
+
+- **Unitarias** (`tests/unit/`): middlewares de autenticación (401, redirección, 403 por rol) y `errorHandler` (JSON en `/api`, vista en rutas web, `CastError`, clave duplicada, `ValidationError`). No requieren base de datos.
+- **Integración** (`tests/integration/`): recorren la API real contra MongoDB. Se ejecutan solo si se define `MONGODB_URI_TEST` con una base cuyo nombre contenga `test` (por ejemplo `mongodb://127.0.0.1:27017/autobox_test`). **La base se vacía al empezar y al terminar**, por eso nunca debe apuntar a la base real.
+
+```bash
+MONGODB_URI_TEST=mongodb://127.0.0.1:27017/autobox_test npm test      # Linux / macOS
+$env:MONGODB_URI_TEST="mongodb://127.0.0.1:27017/autobox_test"; npm test   # PowerShell
+```
+
+| Prueba | Objetivo | Resultado esperado |
+| --- | --- | --- |
+| Login correcto / incorrecto | Verificar autenticación con bcrypt y JWT | Cookie con token / `401` sin cookie |
+| API sin sesión | Verificar que la API no es pública | `401` en GET y DELETE |
+| Operador en `/usuarios` | Verificar control de acceso por rol | `403` operador, `200` admin |
+| Flujo cliente → vehículo → turno | Verificar relaciones por `ObjectId` | `201` en las tres altas |
+| Email duplicado | Verificar índice único y manejo de error | `400` |
+| Horario ocupado | Regla de reserva (RF-01) | `409 Conflict` |
+| Tres reservas simultáneas del mismo horario | Exclusión mutua (RNF-01) | Un `201` y dos `409` |
+| Fecha u hora con formato inválido | Validación del modelo | `400` |
+| `PUT` con `activo:false` en el body | Evitar modificar campos no permitidos | `activo` sigue en `true` |
+| Eliminar cliente/vehículo con dependencias | Integridad referencial | `400` |
+| Cancelar turno | Baja lógica y liberación del horario | Documento con `activo:false`; el horario puede reservarse otra vez |
+| ID mal formado | Manejo de `CastError` | `400` en JSON |
+
+**Regla de reserva:** hay un único box por horario. MongoDB garantiza con un índice único parcial (`fecha` + `hora`, solo turnos activos) que no existan dos turnos activos en el mismo horario, incluso con requests simultáneos. Al cancelar un turno el horario queda libre. Una extensión natural es agregar `bahia` o `mecanico` al índice para permitir varios turnos simultáneos.
+
 ## Pruebas funcionales y evidencias
 
 Durante la integración de las vistas se realizaron las siguientes comprobaciones manuales en el navegador, utilizando MongoDB local:

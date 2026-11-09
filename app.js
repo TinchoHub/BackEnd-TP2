@@ -122,6 +122,6 @@ const iniciarServidor = async () => {
     }
 };
 
-if (!enVercel) iniciarServidor();
+if (!enVercel && process.env.NODE_ENV !== 'test') iniciarServidor();
 
 export default app;

@@ -13,12 +13,14 @@ const turnoSchema = new mongoose.Schema(
     },
     fecha: {
       type: String,
-      required: [true, 'La fecha es obligatoria']
+      required: [true, 'La fecha es obligatoria'],
+      match: [/^\d{4}-\d{2}-\d{2}$/, 'La fecha debe tener formato AAAA-MM-DD']
     },
     hora: {
       type: String,
       required: [true, 'La hora es obligatoria'],
-      trim: true
+      trim: true,
+      match: [/^([01]\d|2[0-3]):[0-5]\d$/, 'La hora debe tener formato HH:MM']
     },
     servicio: {
       type: String,
@@ -36,4 +38,12 @@ const turnoSchema = new mongoose.Schema(
     timestamps: true
   }
 );
+// Regla de reserva (RF-01 / RNF-01): un solo turno activo por fecha y hora.
+// El índice es parcial: al cancelar un turno (activo:false) el horario vuelve a quedar libre.
+// La exclusión la garantiza MongoDB, no el código, por lo que resiste requests simultáneos.
+turnoSchema.index(
+  { fecha: 1, hora: 1 },
+  { unique: true, partialFilterExpression: { activo: true } }
+);
+
 export default mongoose.model('Turno', turnoSchema);

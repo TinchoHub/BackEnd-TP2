@@ -80,6 +80,11 @@ export const crearTurno = async (req, res, next) => {
             turno: nuevoTurno
         });
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                mensaje: 'Ya existe un turno activo en esa fecha y hora. Elegí otro horario.'
+            });
+        }
         next(error);
     }
 };
@@ -115,6 +120,11 @@ export const actualizarTurno = async (req, res, next) => {
         await turno.save(); // ejecuta las validaciones del esquema
         res.json({ mensaje: 'Turno actualizado con éxito', turno });
     } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                mensaje: 'Ya existe un turno activo en esa fecha y hora. Elegí otro horario.'
+            });
+        }
         next(error);
     }
 };
