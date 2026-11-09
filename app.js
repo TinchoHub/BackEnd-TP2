@@ -1,94 +1,99 @@
 import 'dotenv/config';
 import express from 'express';
+import http from 'http';               // 1. Importar http nativo
+import { Server } from 'socket.io';   // 2. Importar Socket.io
 import path from 'path';
 import { fileURLToPath } from 'url';
-import session from 'express-session';
+import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
+import Usuario from './models/Usuario.js'
+import iaRutas from './routes/iaRoutes.js';
 
-// ==========================================
-// Módulos de Configuración y Middleware
-// ==========================================
 import conectarDB from './config/db.js';
 import errorHandler from './middlewares/errorHandler.js';
 
-// ==========================================
-// Importación de Rutas
-// ==========================================
 import clientesRutas from './routes/clientesRoutes.js';
 import vehiculosRutas from './routes/vehiculosRoutes.js';
 import turnosRutas from './routes/turnosRoutes.js';
 import vistasRutas from './routes/vistas.js';
 
-// ==========================================
-// Configuración de __dirname para ES Modules
-// ==========================================
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+const server = http.createServer(app);  // 3. Crear el servidor HTTP con Express
+const io = new Server(server);          // 4. Inicializar Socket.io sobre el servidor
+
 const PORT = process.env.PORT || 3000;
 
-// ==========================================
-// Motor de Plantillas (Pug) y Archivos Estáticos
-// ==========================================
 app.set('view engine', 'pug');
 app.set('views', path.join(__dirname, 'views'));
 
 app.use(express.static(path.join(__dirname, 'public')));
-
-// ==========================================
-// Middlewares de Parseo de Solicitudes
-// ==========================================
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
-// ==========================================
-// Configuración de Sesiones
-// ==========================================
-app.use(session({
-    secret: process.env.SESSION_SECRET || 'autobox-secret-key',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { maxAge: 1000 * 60 * 60 } // Sesión válida por 1 hora
-}));
-
-// Pasar el usuario a las vistas Pug de manera global
+// 5. Inyectar 'io' en cada petición para poder emitir eventos desde los controladores
 app.use((req, res, next) => {
-    res.locals.usuario = req.session.usuario || null;
+    req.io = io;
     next();
 });
 
-// ==========================================
-// Integración de Rutas (API y Web)
-// ==========================================
+// Middleware global de usuario para Pug
+app.use(async (req, res, next) => {
+    const token = req.cookies?.token;
+    res.locals.usuario = null;
+
+    if (token) {
+        try {
+            const payload = jwt.verify(token, process.env.JWT_SECRET);
+            const usuario = await Usuario.findById(payload.id).select('-password');
+            if (usuario && usuario.activo) {
+                req.usuario = usuario;
+                res.locals.usuario = usuario;
+            } else {
+                res.clearCookie('token');
+            }
+        } catch (error) {
+            res.clearCookie('token');
+        }
+    }
+    next();
+});
+
+// Eventos básicos de conexión de WebSocket
+io.on('connection', (socket) => {
+    console.log(`[WebSocket] Cliente conectado con ID: ${socket.id}`);
+
+    socket.on('disconnect', () => {
+        console.log(`[WebSocket] Cliente desconectado: ${socket.id}`);
+    });
+});
+
+// Rutas
 app.use('/api/clientes', clientesRutas);
 app.use('/api/vehiculos', vehiculosRutas);
 app.use('/api/turnos', turnosRutas);
+app.use('/api/ia', iaRutas);
 app.use('/', vistasRutas);
 
-// ==========================================
-// Ruta No Encontrada (404)
-// ==========================================
+
+// 404 y Errores
 app.use((req, res) => {
     res.status(404).render('404', { 
         titulo: 'Página no encontrada',
         mensaje: 'El recurso solicitado no existe' 
     });
 });
-
-// ==========================================
-// Middleware Centralizado de Manejo de Errores
-// ==========================================
 app.use(errorHandler);
 
-// ==========================================
-// Inicialización del Servidor
-// ==========================================
+// 6. Iniciar usando 'server.listen' en lugar de 'app.listen'
 const iniciarServidor = async () => {
     try {
         await conectarDB();
-
-        app.listen(PORT, () => {
-            console.log(`Servidor en http://localhost:${PORT}`);
+        server.listen(PORT, () => {
+            console.log(`Servidor con WebSockets en http://localhost:${PORT}`);
         });
     } catch (error) {
         console.error('No se pudo iniciar el servidor:', error.message);

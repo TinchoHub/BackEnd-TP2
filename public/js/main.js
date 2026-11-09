@@ -1,8 +1,70 @@
+// ==========================================
+// CONEXIÓN EN TIEMPO REAL (WEBSOCKETS)
+// ==========================================
+const socket = typeof io !== 'undefined' ? io() : null;
+
+if (socket) {
+    socket.on("connect", () => {
+        console.log("Conectado al servidor de WebSockets:", socket.id);
+    });
+
+    // Escuchar evento de turno creado
+    socket.on("turno:creado", (datos) => {
+        const servicioNom = datos.turno?.servicio || "Servicio";
+        mostrarToast(`📅 ${datos.mensaje}: ${servicioNom}`);
+
+        const tablaBody = document.querySelector("#tablaTurnos tbody");
+        if (tablaBody && datos.turno) {
+            const idCorto = datos.turno._id ? datos.turno._id.slice(-6) : "---";
+            const clienteNom = datos.turno.clienteId 
+                ? `${datos.turno.clienteId.nombre} ${datos.turno.clienteId.apellido}` 
+                : "Cliente no disponible";
+            const vehiculoNom = datos.turno.vehiculoId 
+                ? `${datos.turno.vehiculoId.patente} - ${datos.turno.vehiculoId.marca} ${datos.turno.vehiculoId.modelo || ''}` 
+                : "Vehículo no disponible";
+
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td><span class="id-badge">${idCorto}</span></td>
+                <td>${clienteNom}</td>
+                <td>${vehiculoNom}</td>
+                <td><strong>${datos.turno.fecha}</strong></td>
+                <td>${datos.turno.hora}</td>
+                <td>${datos.turno.servicio}</td>
+                <td><a class="action-link" href="/turnos/${datos.turno._id}">Ver detalle →</a></td>
+            `;
+            tablaBody.prepend(tr);
+        }
+    });
+
+    // Escuchar evento de turno cancelado
+    socket.on("turno:cancelado", (datos) => {
+        mostrarToast(`❌ ${datos.mensaje}`);
+        const tablaBody = document.querySelector("#tablaTurnos tbody");
+        if (tablaBody) {
+            setTimeout(() => {
+                window.location.reload();
+            }, 1200);
+        }
+    });
+}
+
+function mostrarToast(mensaje) {
+    const toast = document.createElement("div");
+    toast.className = "socket-toast";
+    toast.textContent = mensaje;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.remove();
+    }, 4000);
+}
+
+// ==========================================
+// LÓGICA PRINCIPAL (DOM READY)
+// ==========================================
 document.addEventListener("DOMContentLoaded", () => {
 
-    // ==========================================
-    // MENÚ ACTIVO SEGÚN LA URL
-    // ==========================================
+    // 1. Menú lateral activo según la URL
     const enlaces = document.querySelectorAll(".sidebar__nav a");
     const rutaActual = window.location.pathname;
 
@@ -18,9 +80,86 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // ==========================================
-    // FILTRAR VEHÍCULOS SEGÚN CLIENTE (NUEVO TURNO)
-    // ==========================================
+    // 2. Control del Widget Flotante de IA
+    const btnToggleChatIA = document.getElementById("btnToggleChatIA");
+    const btnCerrarChatIA = document.getElementById("btnCerrarChatIA");
+    const ventanaChatIA = document.getElementById("ventanaChatIA");
+    const formChatIA = document.getElementById("formChatIA");
+    const inputPreguntaIA = document.getElementById("inputPreguntaIA");
+    const chatBox = document.getElementById("chatBox");
+    const btnEnviarIA = document.getElementById("btnEnviarIA");
+
+    if (btnToggleChatIA && ventanaChatIA) {
+        const toggleChat = (e) => {
+            if (e) e.stopPropagation();
+            const oculto = ventanaChatIA.classList.toggle("ia-hidden");
+            btnToggleChatIA.classList.toggle("is-active", !oculto);
+
+            if (!oculto && inputPreguntaIA) {
+                setTimeout(() => inputPreguntaIA.focus(), 150);
+            }
+        };
+
+        btnToggleChatIA.onclick = toggleChat;
+
+        if (btnCerrarChatIA) {
+            btnCerrarChatIA.onclick = toggleChat;
+        }
+    }
+
+    // 3. Envío y procesamiento de preguntas de IA
+    if (formChatIA && inputPreguntaIA && chatBox) {
+        const agregarMensaje = (texto, tipo) => {
+            const msgDiv = document.createElement("div");
+            msgDiv.className = `chat-msg chat-msg--${tipo}`;
+            const bubbleDiv = document.createElement("div");
+            bubbleDiv.className = "chat-msg__bubble";
+            bubbleDiv.innerHTML = texto.replace(/\n/g, "<br>");
+            msgDiv.appendChild(bubbleDiv);
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return msgDiv;
+        };
+
+        formChatIA.onsubmit = async (e) => {
+            e.preventDefault();
+            const mensaje = inputPreguntaIA.value.trim();
+            if (!mensaje) return;
+
+            agregarMensaje(mensaje, "user");
+            inputPreguntaIA.value = "";
+            inputPreguntaIA.disabled = true;
+            if (btnEnviarIA) btnEnviarIA.disabled = true;
+
+            const indicadorCarga = agregarMensaje("Analizando consulta con el taller...", "loading");
+
+            try {
+                const res = await fetch("/api/ia/consultar", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ mensaje })
+                });
+
+                const data = await res.json();
+                indicadorCarga.remove();
+
+                if (res.ok && data.respuesta) {
+                    agregarMensaje(data.respuesta, "bot");
+                } else {
+                    agregarMensaje(data.error || "No se pudo obtener respuesta del asesor.", "bot");
+                }
+            } catch (error) {
+                indicadorCarga.remove();
+                agregarMensaje("Error al conectar con el servidor.", "bot");
+            } finally {
+                inputPreguntaIA.disabled = false;
+                if (btnEnviarIA) btnEnviarIA.disabled = false;
+                inputPreguntaIA.focus();
+            }
+        };
+    }
+
+    // 4. Filtrar vehículos dinámicamente según el cliente seleccionado
     const clienteSelect = document.querySelector("#clienteId");
     const vehiculoSelect = document.querySelector("#vehiculoId");
 
@@ -29,7 +168,6 @@ document.addEventListener("DOMContentLoaded", () => {
             vehiculoSelect.querySelectorAll("option[data-cliente-id]")
         );
 
-        // Al cargar la página, ocultar todos los vehículos
         opcionesVehiculos.forEach(opcion => {
             opcion.hidden = true;
             opcion.disabled = true;
@@ -38,7 +176,6 @@ document.addEventListener("DOMContentLoaded", () => {
         clienteSelect.addEventListener("change", () => {
             const clienteSeleccionado = clienteSelect.value;
 
-            // Resetear el selector de vehículo
             vehiculoSelect.innerHTML =
                 '<option value="" selected disabled>Seleccione un vehículo</option>';
 
@@ -64,9 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ==========================================
-    // EFECTO SUAVE EN LAS CARDS
-    // ==========================================
+    // 5. Efecto interactivo en tarjetas
     const cards = document.querySelectorAll(".accion-card, .stat-card");
     cards.forEach(card => {
         card.addEventListener("mousemove", (e) => {
@@ -79,9 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
 
-    // ==========================================
-    // ANIMACIÓN DE CONTADORES
-    // ==========================================
+    // 6. Animación de contadores numéricos
     const contadores = document.querySelectorAll(".stat-numero");
     contadores.forEach(contador => {
         const objetivo = Number(contador.textContent);
@@ -103,9 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }, duracion / pasos);
     });
 
-    // ==========================================
-    // BUSCADOR GENÉRICO DE TABLAS
-    // ==========================================
+    // 7. Buscador interactivo en tablas
     const buscadores = document.querySelectorAll("[data-table-search]");
     buscadores.forEach(buscador => {
         const tablaId = buscador.dataset.tableSearch;
@@ -123,7 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================================
-// CANCELAR TURNO (EXPUESTAS GLOBALMENTE)
+// FUNCIONES GLOBALES PARA ELIMINACIÓN ASÍNCRONA
 // ==========================================
 async function cancelarTurno(id) {
     if (!id || id === 'undefined') {
@@ -153,9 +284,6 @@ async function cancelarTurno(id) {
     }
 }
 
-// ==========================================
-// ELIMINAR VEHÍCULO
-// ==========================================
 async function eliminarVehiculo(id) {
     if (!id || id === 'undefined') {
         alert("Error: Identificador de vehículo no válido");
@@ -184,9 +312,6 @@ async function eliminarVehiculo(id) {
     }
 }
 
-// ==========================================
-// ELIMINAR CLIENTE
-// ==========================================
 async function eliminarCliente(id) {
     if (!id || id === 'undefined') {
         alert("Error: Identificador de cliente no válido");

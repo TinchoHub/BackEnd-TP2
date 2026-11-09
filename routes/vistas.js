@@ -1,79 +1,48 @@
 import express from 'express';
 import * as vistasController from '../controllers/vistasController.js';
-import { isAuthenticated } from '../middlewares/auth.js';
+import * as authController from '../controllers/authController.js';
+import { protegerRuta } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
-// Credenciales hardcodeadas de prueba
-const USUARIO_ADMIN = {
-    username: 'admin',
-    password: 'password123',
-    nombre: 'Administrador AutoBox'
-};
-
 // ==========================================
-// Rutas Públicas (Autenticación)
+// Rutas Públicas (Autenticación con MongoDB)
 // ==========================================
-
-// Mostrar formulario de Login
-router.get('/login', (req, res) => {
-    if (req.session?.usuario) {
-        return res.redirect('/');
-    }
-    res.render('login', { titulo: 'Iniciar Sesión' });
-});
-
-// Procesar Login
-router.post('/login', (req, res) => {
-    const { username, password } = req.body;
-
-    if (username === USUARIO_ADMIN.username && password === USUARIO_ADMIN.password) {
-        req.session.usuario = {
-            username: USUARIO_ADMIN.username,
-            nombre: USUARIO_ADMIN.nombre
-        };
-        return res.redirect('/');
-    }
-
-    res.status(401).render('login', {
-        titulo: 'Iniciar Sesión',
-        error: 'Usuario o contraseña incorrectos'
-    });
-});
-
-// Cerrar sesión
-router.get('/logout', (req, res, next) => {
-    req.session.destroy((err) => {
-        if (err) return next(err);
-        res.redirect('/login');
-    });
-});
+router.get('/login', authController.renderLogin);
+router.post('/login', authController.procesarLogin);
+router.get('/logout', authController.procesarLogout);
 
 // ==========================================
 // Rutas Protegidas (Requieren Login)
 // ==========================================
 
 // Inicio
-router.get('/', isAuthenticated, vistasController.renderInicio);
+router.get('/', protegerRuta, vistasController.renderInicio);
 
 // Clientes
-router.get('/clientes', isAuthenticated, vistasController.renderClientes);
-router.get('/clientes/nuevo', isAuthenticated, vistasController.renderNuevoCliente);
-router.get('/clientes/:id/editar', isAuthenticated, vistasController.renderEditarCliente);
-router.post('/clientes/:id/editar', isAuthenticated, vistasController.procesarModificarCliente);
-router.get('/clientes/:id', isAuthenticated, vistasController.renderClienteDetalle);
-router.post('/clientes', isAuthenticated, vistasController.procesarNuevoCliente);
+router.get('/clientes', protegerRuta, vistasController.renderClientes);
+router.get('/clientes/nuevo', protegerRuta, vistasController.renderNuevoCliente);
+router.get('/clientes/:id/editar', protegerRuta, vistasController.renderEditarCliente);
+router.post('/clientes/:id/editar', protegerRuta, vistasController.procesarModificarCliente);
+router.get('/clientes/:id', protegerRuta, vistasController.renderClienteDetalle);
+router.post('/clientes', protegerRuta, vistasController.procesarNuevoCliente);
 
 // Vehículos
-router.get('/vehiculos', isAuthenticated, vistasController.renderVehiculos);
-router.get('/vehiculos/nuevo', isAuthenticated, vistasController.renderNuevoVehiculo);
-router.get('/vehiculos/:id', isAuthenticated, vistasController.renderVehiculoDetalle);
-router.post('/vehiculos', isAuthenticated, vistasController.procesarNuevoVehiculo);
+router.get('/vehiculos', protegerRuta, vistasController.renderVehiculos);
+router.get('/vehiculos/nuevo', protegerRuta, vistasController.renderNuevoVehiculo);
+router.get('/vehiculos/:id', protegerRuta, vistasController.renderVehiculoDetalle);
+router.post('/vehiculos', protegerRuta, vistasController.procesarNuevoVehiculo);
 
 // Turnos
-router.get('/turnos', isAuthenticated, vistasController.renderTurnos);
-router.get('/turnos/nuevo', isAuthenticated, vistasController.renderNuevoTurno);
-router.get('/turnos/:id', isAuthenticated, vistasController.renderTurnoDetalle);
-router.post('/turnos', isAuthenticated, vistasController.procesarNuevoTurno);
+router.get('/turnos', protegerRuta, vistasController.renderTurnos);
+router.get('/turnos/nuevo', protegerRuta, vistasController.renderNuevoTurno);
+router.get('/turnos/:id', protegerRuta, vistasController.renderTurnoDetalle);
+router.post('/turnos', protegerRuta, vistasController.procesarNuevoTurno);
+
+router.get('/asistente', protegerRuta, (req, res) => {
+    res.render('asistente', {
+        titulo: 'Asesor Técnico Inteligente'
+    });
+});
 
 export default router;

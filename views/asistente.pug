@@ -1,0 +1,55 @@
+extends layout
+
+block contenido
+  .contenido-header
+    h1.page-title Asesor Técnico Inteligente
+    p.page-subtitle Consultá sobre fallas, diagnósticos preventivos y servicios mecánicos en tiempo real.
+
+  .asistente-container
+    .chat-card
+      .chat-card__header
+        .chat-card__status
+          span.status-dot
+          span En línea · Asesor AutoBox AI
+        span.chat-card__badge Gemini Flash 2.5
+
+      .chat-box#chatBox
+        .chat-msg.chat-msg--bot
+          .chat-msg__bubble
+            p ¡Hola! Soy el asesor de servicios de 
+              strong AutoBox
+              | . ¿En qué podemos ayudarte hoy con tu vehículo? Contame qué ruido, falla o mantenimiento preventivo necesitás evaluar.
+
+      form#formChatIA.chat-form
+        .chat-form__group
+          input#inputPreguntaIA(
+            type="text"
+            placeholder="Ej: Siento que el auto tironea en segunda y hace un chillido al frenar..."
+            autocomplete="off"
+            required
+          )
+          button.btn.btn--primary#btnEnviarIA(type="submit")
+            span Enviar
+            svg.btn-icon(
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            )
+              line(x1="22" y1="2" x2="11" y2="13")
+              polygon(points="22 2 15 22 11 13 2 9 22 2")
+
+    .asistente-sidebar
+      .info-card
+        h3 Sugerencias Rápidas
+        p Hacé clic en cualquiera de las consultas típicas para enviarla directamente:
+        .sugerencias-lista
+          button.sugerencia-btn(type="button" data-prompt="¿Cada cuántos kilómetros debo hacer el cambio de aceite y filtros?") 🛢️ Service de aceite y filtros
+          button.sugerencia-btn(type="button" data-prompt="El pedal de freno vibra y hace un ruido metálico al frenar.") 🛑 Ruidos en frenos y pastillas
+          button.sugerencia-btn(type="button" data-prompt="Se encendió el testigo de Check Engine en el tablero, ¿qué significa?") ⚠️ Luz de Check Engine
+          button.sugerencia-btn(type="button" data-prompt="¿Qué incluye una revisión preventiva del tren delantero?") 🔧 Tren delantero y suspensión
+
+      .info-card.info-card--turno
+        h3 ¿Listo para la reparación?
+        p Recordá que el diagnóstico definitivo se realiza en el taller.
+        a.btn.btn--outline(href="/turnos/nuevo") Agendar Turno Ahora →

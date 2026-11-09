@@ -34,22 +34,26 @@ export const consultarTurnoPorId = async (req, res, next) => {
 export const crearTurno = async (req, res, next) => {
     try {
         const { clienteId, vehiculoId, fecha, hora, servicio } = req.body;
+
         // Validar existencia de cliente activo
         const clienteExiste = await Cliente.findOne({ _id: clienteId, activo: true });
         if (!clienteExiste) {
             return res.status(400).json({ mensaje: 'El cliente seleccionado no existe o está inactivo' });
         }
+
         // Validar existencia de vehículo activo
         const vehiculo = await Vehiculo.findOne({ _id: vehiculoId, activo: true });
         if (!vehiculo) {
             return res.status(400).json({ mensaje: 'El vehículo seleccionado no existe o está inactivo' });
         }
+
         // Verificar que el vehículo pertenezca al cliente indicado
         if (vehiculo.clienteId.toString() !== clienteId.toString()) {
             return res.status(400).json({
                 mensaje: 'El vehículo seleccionado no pertenece al cliente indicado'
             });
         }
+
         const nuevoTurno = await Turno.create({
             clienteId,
             vehiculoId,
@@ -57,6 +61,20 @@ export const crearTurno = async (req, res, next) => {
             hora,
             servicio: servicio?.trim()
         });
+
+        // Poblar datos para emitir al WebSocket con información legible
+        const turnoPoblado = await Turno.findById(nuevoTurno._id)
+            .populate('clienteId', 'nombre apellido')
+            .populate('vehiculoId', 'patente marca modelo');
+
+        // Notificar en tiempo real a todos los clientes conectados
+        if (req.io) {
+            req.io.emit('turno:creado', {
+                mensaje: 'Se ha agendado un nuevo turno',
+                turno: turnoPoblado
+            });
+        }
+
         res.status(201).json({
             mensaje: 'Turno creado con éxito',
             turno: nuevoTurno
@@ -78,14 +96,17 @@ export const actualizarTurno = async (req, res, next) => {
                 });
             }
         }
+
         const turnoActualizado = await Turno.findOneAndUpdate(
             { _id: req.params.id, activo: true },
             req.body,
             { new: true, runValidators: true }
         );
+
         if (!turnoActualizado) {
             return res.status(404).json({ mensaje: 'Turno no encontrado para actualizar' });
         }
+
         res.json({ mensaje: 'Turno actualizado con éxito', turno: turnoActualizado });
     } catch (error) {
         next(error);
@@ -100,9 +121,19 @@ export const cancelarTurnoPorId = async (req, res, next) => {
             { activo: false },
             { new: true }
         );
+
         if (!turnoCancelado) {
             return res.status(404).json({ mensaje: 'Turno no encontrado' });
         }
+
+        // Notificar en tiempo real la cancelación
+        if (req.io) {
+            req.io.emit('turno:cancelado', {
+                id: req.params.id,
+                mensaje: 'Un turno ha sido cancelado'
+            });
+        }
+
         res.json({ mensaje: 'Turno cancelado correctamente' });
     } catch (error) {
         next(error);
