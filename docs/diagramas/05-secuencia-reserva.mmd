@@ -1,0 +1,26 @@
+sequenceDiagram
+    actor O as Operador
+    participant N as Navegador
+    participant A as API /api/turnos
+    participant C as turnosController
+    participant DB as MongoDB
+
+    O->>N: Completa cliente, vehículo, fecha, hora y servicio
+    N->>A: POST /api/turnos
+    A->>A: protegerApi verifica la sesión
+    A->>C: crearTurno
+    C->>DB: Cliente activo existe?
+    C->>DB: Vehículo activo existe?
+    C->>C: El vehículo pertenece al cliente?
+    alt Cliente o vehículo inválido, o no coinciden
+        C-->>N: 400 con mensaje
+    else Datos válidos
+        C->>DB: Turno.create (valida formato e índice único fecha+hora)
+        alt Horario ya ocupado por un turno activo
+            DB-->>C: Error 11000 (clave duplicada)
+            C-->>N: 409 Conflict
+        else Horario libre
+            DB-->>C: Turno creado
+            C-->>N: 201 Turno creado
+        end
+    end

@@ -1,0 +1,41 @@
+classDiagram
+    direction LR
+    class Cliente {
+        +ObjectId _id
+        +String nombre
+        +String apellido
+        +String telefono
+        +String email  «único»
+        +Boolean activo
+        +Date createdAt
+        +Date updatedAt
+    }
+    class Vehiculo {
+        +ObjectId _id
+        +String patente  «única, mayúsculas»
+        +String marca
+        +String modelo
+        +ObjectId clienteId
+        +Boolean activo
+    }
+    class Turno {
+        +ObjectId _id
+        +ObjectId clienteId
+        +ObjectId vehiculoId
+        +String fecha  «AAAA-MM-DD»
+        +String hora  «HH:MM»
+        +String servicio
+        +Boolean activo
+    }
+    class Usuario {
+        +ObjectId _id
+        +String username  «único»
+        +String password  «hash bcrypt»
+        +String nombre
+        +String rol  «admin | operador»
+        +Boolean activo
+        +compararPassword(passwordIngresada) Boolean
+    }
+    Cliente "1" --> "0..*" Vehiculo : posee
+    Cliente "1" --> "0..*" Turno : solicita
+    Vehiculo "1" --> "0..*" Turno : se atiende en

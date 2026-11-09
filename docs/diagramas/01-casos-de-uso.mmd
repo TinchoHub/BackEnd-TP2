@@ -1,0 +1,28 @@
+flowchart LR
+    AD(["Administrador"])
+    OP(["Operador<br/>(Recepción)"])
+
+    subgraph SIS["Sistema AutoBox / TurnoFlex"]
+        CU1(["Iniciar y cerrar sesión"])
+        CU2(["Gestionar clientes<br/>(baja bloqueada si tiene vehículos activos)"])
+        CU3(["Gestionar vehículos<br/>(baja bloqueada si tiene turnos activos)"])
+        CU4(["Agendar turno (RF-01)"])
+        CU5(["Consultar turnos"])
+        CU6(["Cancelar turno (RF-03)"])
+        CU7(["Ver turnos nuevos y cancelados<br/>en tiempo real (RF-04, solo en local)"])
+        CU8(["Consultar asesor técnico con IA"])
+        CU9(["Gestionar usuarios y roles"])
+        V1(["Validar horario libre y<br/>pertenencia vehículo-cliente"])
+    end
+
+    OP --- CU1
+    OP --- CU2
+    OP --- CU3
+    OP --- CU4
+    OP --- CU5
+    OP --- CU6
+    OP --- CU7
+    OP --- CU8
+    AD --- CU9
+    AD -. "hereda los casos de uso del operador" .-> OP
+    CU4 -. "«include»" .-> V1

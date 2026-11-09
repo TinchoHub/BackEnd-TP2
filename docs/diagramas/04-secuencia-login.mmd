@@ -1,0 +1,25 @@
+sequenceDiagram
+    actor U as Usuario
+    participant N as Navegador
+    participant S as Express (authController)
+    participant DB as MongoDB
+
+    U->>N: Ingresa usuario y contraseña
+    N->>S: POST /login
+    S->>DB: Busca usuario activo por username
+    DB-->>S: Usuario (o nada)
+    alt Usuario inexistente o contraseña incorrecta
+        S-->>N: 401 y vista de login con error
+    else Credenciales válidas (bcrypt.compare)
+        S->>S: Firma JWT con id, username y rol (2 h)
+        S-->>N: 302 a / y cookie token (httpOnly, sameSite lax)
+    end
+
+    Note over N,S: En cada request posterior
+    N->>S: GET /clientes (con cookie)
+    S->>S: app.js verifica el JWT y carga req.usuario
+    alt Sin usuario válido
+        S-->>N: Vistas: redirige a /login. API: 401 JSON
+    else Con usuario válido
+        S-->>N: Respuesta solicitada
+    end

@@ -1,0 +1,19 @@
+sequenceDiagram
+    actor O as Operador
+    participant N as Navegador
+    participant C as turnosController
+    participant DB as MongoDB
+    participant WS as Socket.io
+    participant R as Otros navegadores conectados
+
+    O->>N: Cancela un turno
+    N->>C: DELETE /api/turnos/:id
+    C->>DB: Actualiza activo=false (baja lógica)
+    DB-->>C: Turno actualizado
+    C-->>N: 200 Turno cancelado
+    opt Entorno con servidor persistente (local)
+        C->>WS: emit turno:cancelado
+        WS-->>R: Evento en tiempo real
+        R->>R: Actualiza la tabla sin recargar
+    end
+    Note over DB: El horario queda libre: el índice único solo aplica a turnos activos

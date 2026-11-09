@@ -1,0 +1,46 @@
+erDiagram
+    CLIENTE ||--o{ VEHICULO : posee
+    CLIENTE ||--o{ TURNO : solicita
+    VEHICULO ||--o{ TURNO : "se atiende en"
+
+    CLIENTE {
+        ObjectId _id PK
+        string nombre
+        string apellido
+        string telefono
+        string email UK
+        boolean activo
+        date createdAt
+        date updatedAt
+    }
+    VEHICULO {
+        ObjectId _id PK
+        string patente UK
+        string marca
+        string modelo
+        ObjectId clienteId FK
+        boolean activo
+        date createdAt
+        date updatedAt
+    }
+    TURNO {
+        ObjectId _id PK
+        ObjectId clienteId FK
+        ObjectId vehiculoId FK
+        string fecha "AAAA-MM-DD"
+        string hora "HH:MM"
+        string servicio
+        boolean activo "indice unico fecha+hora si activo"
+        date createdAt
+        date updatedAt
+    }
+    USUARIO {
+        ObjectId _id PK
+        string username UK
+        string password "hash bcrypt"
+        string nombre
+        string rol "admin u operador"
+        boolean activo
+        date createdAt
+        date updatedAt
+    }

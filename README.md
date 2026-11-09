@@ -86,6 +86,10 @@ La aplicación en producción corre en **Vercel** (importando el repositorio de 
 
 URL de producción: https://back-end-tp-2.vercel.app/
 
+## Diagramas
+
+Casos de uso, clases, entidad-relación y secuencias (login, reserva y cancelación de turnos) en [`docs/diagramas.md`](docs/diagramas.md).
+
 ## Roles y acceso
 
 | Recurso | Sin sesión | Operador | Admin |
