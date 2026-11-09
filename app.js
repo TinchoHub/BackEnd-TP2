@@ -24,7 +24,10 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const server = http.createServer(app);  // 3. Crear el servidor HTTP con Express
-const io = new Server(server);          // 4. Inicializar Socket.io sobre el servidor
+// Vercel ejecuta funciones serverless, que no admiten conexiones WebSocket persistentes:
+// en ese entorno las notificaciones en tiempo real quedan deshabilitadas.
+const enVercel = Boolean(process.env.VERCEL);
+const io = enVercel ? null : new Server(server);  // 4. Inicializar Socket.io sobre el servidor
 
 const PORT = process.env.PORT || 3000;
 
@@ -36,9 +39,20 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Garantiza la conexión a MongoDB antes de atender cada request (se reutiliza si ya existe)
+app.use(async (req, res, next) => {
+    try {
+        await conectarDB();
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
+
 // 5. Inyectar 'io' en cada petición para poder emitir eventos desde los controladores
 app.use((req, res, next) => {
     req.io = io;
+    res.locals.socketsHabilitados = Boolean(io);
     next();
 });
 
@@ -65,13 +79,16 @@ app.use(async (req, res, next) => {
 });
 
 // Eventos básicos de conexión de WebSocket
-io.on('connection', (socket) => {
+io?.on('connection', (socket) => {
     console.log(`[WebSocket] Cliente conectado con ID: ${socket.id}`);
 
     socket.on('disconnect', () => {
         console.log(`[WebSocket] Cliente desconectado: ${socket.id}`);
     });
 });
+
+// Chequeo de salud para la plataforma de despliegue (público)
+app.get('/health', (req, res) => res.json({ estado: 'ok' }));
 
 // Rutas
 // La API REST exige sesión válida (JWT en cookie); /api/ia lo valida en su propio router
@@ -92,12 +109,12 @@ app.use((req, res) => {
 });
 app.use(errorHandler);
 
-// 6. Iniciar usando 'server.listen' en lugar de 'app.listen'
+// Inicio local: en Vercel no se abre un puerto, la plataforma invoca la app exportada
 const iniciarServidor = async () => {
     try {
         await conectarDB();
         server.listen(PORT, () => {
-            console.log(`Servidor con WebSockets en http://localhost:${PORT}`);
+            console.log(`Servidor en http://localhost:${PORT}`);
         });
     } catch (error) {
         console.error('No se pudo iniciar el servidor:', error.message);
@@ -105,4 +122,6 @@ const iniciarServidor = async () => {
     }
 };
 
-iniciarServidor();
+if (!enVercel) iniciarServidor();
+
+export default app;

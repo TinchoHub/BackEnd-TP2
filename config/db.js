@@ -1,20 +1,22 @@
-
 import mongoose from 'mongoose';
 
-// Función para conectar con MongoDB
+// Promesa de conexión reutilizable: en un entorno serverless (Vercel) cada request
+// puede ejecutarse en una instancia ya iniciada, y se evita abrir una conexión nueva cada vez.
+let conexion = null;
+
 const conectarDB = async () => {
-    try {
-        const uri = process.env.MONGODB_URI;
+    if (mongoose.connection.readyState === 1) return mongoose.connection;
 
-        const conn = await mongoose.connect(uri);
-
-        console.log(
-            `MongoDB Conectado: ${conn.connection.host}/${conn.connection.name}`
-        );
-    } catch (error) {
-        console.error(`Error al conectar con MongoDB: ${error.message}`);
-        process.exit(1);
+    if (!conexion) {
+        conexion = mongoose.connect(process.env.MONGODB_URI).then((conn) => {
+            console.log(`MongoDB Conectado: ${conn.connection.host}/${conn.connection.name}`);
+            return conn.connection;
+        }).catch((error) => {
+            conexion = null; // permite reintentar en la próxima request
+            throw new Error(`Error al conectar con MongoDB: ${error.message}`);
+        });
     }
+    return conexion;
 };
 
 export default conectarDB;

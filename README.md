@@ -31,7 +31,7 @@ Aplicación web para administrar **clientes, vehículos y turnos** de un taller 
 ├── models/                 # Cliente, Vehiculo, Turno, Usuario
 ├── routes/                 # Rutas API (/api/...) y rutas web
 ├── services/               # Integración con Gemini
-├── prompts/asesor.txt      # Instrucciones del asesor técnico
+├── prompts/asesor.js       # Instrucciones del asesor técnico
 ├── scripts/seed.js         # Crea el primer administrador
 ├── views/  public/         # Plantillas Pug, CSS, JS cliente e imágenes
 └── .env.example            # Plantilla de variables de entorno
@@ -62,6 +62,29 @@ npm run dev              # desarrollo (o npm start)
 ```
 
 Abrir `http://localhost:3000` e iniciar sesión con el administrador creado por el seed. Desde **Usuarios** el administrador puede dar de alta operadores.
+
+## Despliegue (MongoDB Atlas + Vercel)
+
+La aplicación en producción corre en **Vercel** (importando el repositorio de GitHub, sin `vercel.json`: Vercel detecta Express automáticamente) y la base de datos en **MongoDB Atlas**.
+
+**1. Atlas**
+1. Cluster gratuito (M0) y un usuario de base de datos con contraseña propia.
+2. En *Network Access* se habilitó `0.0.0.0/0`, porque las funciones de Vercel no tienen IP fija. La protección real queda en el usuario y la contraseña de la base.
+3. `MONGODB_URI` usa la cadena `mongodb+srv://...` con el nombre de la base (`/autobox`) antes del `?`.
+
+**2. Vercel**
+1. *Add New → Project* e importar el repositorio de GitHub.
+2. En *Settings → Environment Variables* cargar `MONGODB_URI`, `JWT_SECRET` y `GEMINI_API_KEY` (Vercel ya define `NODE_ENV=production`).
+3. Cada push a la rama principal genera un nuevo despliegue.
+4. El primer administrador se crea una sola vez ejecutando `npm run seed` en local, con `MONGODB_URI` apuntando a Atlas.
+
+**Adaptaciones para entorno serverless**
+- `app.js` exporta la aplicación y solo abre un puerto (`server.listen`) fuera de Vercel.
+- `config/db.js` reutiliza la conexión a MongoDB entre invocaciones y se conecta antes de atender cada request.
+- Las instrucciones del asesor de IA se importan como módulo (`prompts/asesor.js`) para que queden incluidas en el despliegue.
+- **Limitación:** las funciones de Vercel no mantienen conexiones WebSocket, por lo que en producción las notificaciones en tiempo real (`turno:creado` / `turno:cancelado`) están deshabilitadas. En local y en hostings con servidor persistente funcionan normalmente.
+
+URL de producción: https://back-end-tp-2.vercel.app/
 
 ## Roles y acceso
 
