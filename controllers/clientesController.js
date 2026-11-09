@@ -28,16 +28,54 @@ export const consultarClientePorId = async (req, res, next) => {
 export const agregarCliente = async (req, res, next) => {
     try {
         const { nombre, apellido, telefono, email } = req.body;
+
+        const nombreLimpio = nombre?.trim();
+        const apellidoLimpio = apellido?.trim();
+        const telefonoLimpio = String(telefono || '').trim();
+        const emailLimpio = email?.trim().toLowerCase();
+
+        // 1. Validaciones simples de presencia y longitud
+        if (!nombreLimpio || !apellidoLimpio || !telefonoLimpio || !emailLimpio) {
+            return res.status(400).json({
+                mensaje: 'Todos los campos (nombre, apellido, teléfono, email) son obligatorios.'
+            });
+        }
+
+        if (nombreLimpio.length < 2 || apellidoLimpio.length < 2) {
+            return res.status(400).json({
+                mensaje: 'El nombre y apellido deben tener al menos 2 caracteres.'
+            });
+        }
+
+        // Validación simple de formato de email
+        const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!regexEmail.test(emailLimpio)) {
+            return res.status(400).json({
+                mensaje: 'El formato de correo electrónico no es válido.'
+            });
+        }
+
+        // 2. Validación de existencia en la Base de Datos (Unicidad)
+        const clienteExistente = await Cliente.findOne({ email: emailLimpio });
+        if (clienteExistente) {
+            return res.status(400).json({
+                mensaje: `Ya existe un cliente registrado con el correo ${emailLimpio}.`
+            });
+        }
+
+        // 3. Creación del nuevo cliente
         const nuevoCliente = await Cliente.create({
-            nombre: nombre?.trim(),
-            apellido: apellido?.trim(),
-            telefono: String(telefono || '').trim(),
-            email: email?.trim().toLowerCase()
+            nombre: nombreLimpio,
+            apellido: apellidoLimpio,
+            telefono: telefonoLimpio,
+            email: emailLimpio
         });
-        res.status(201).json({
+
+        return res.status(201).json({
             mensaje: 'Cliente agregado con éxito',
             cliente: nuevoCliente
         });
+
     } catch (error) {
         next(error);
     }

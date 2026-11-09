@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
 import Usuario from './models/Usuario.js'
 import iaRutas from './routes/iaRoutes.js';
+import usuarioRoutes from './routes/usuarioRoutes.js';
 
 import conectarDB from './config/db.js';
 import errorHandler from './middlewares/errorHandler.js';
@@ -76,6 +77,7 @@ app.use('/api/clientes', clientesRutas);
 app.use('/api/vehiculos', vehiculosRutas);
 app.use('/api/turnos', turnosRutas);
 app.use('/api/ia', iaRutas);
+app.use('/usuarios', usuarioRoutes);
 app.use('/', vistasRutas);
 
 

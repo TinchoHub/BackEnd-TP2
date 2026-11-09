@@ -30,6 +30,25 @@ const protegerRuta = async (req, res, next) => {
   }
 };
 
+// Middleware para restringir acceso exclusivamente a rol 'admin'
+const esAdmin = async (req, res, next) => {
+  // 1. Si no pasó por protegerRuta antes, verificamos si existe req.usuario
+  if (!req.usuario) {
+    return protegerRuta(req, res, () => esAdmin(req, res, next));
+  }
+
+  // 2. Comprobar si el rol es 'admin'
+  if (req.usuario.rol !== "admin") {
+    return res.status(403).render("404", {
+      titulo: "Acceso Denegado",
+      mensaje: "No tenés permisos de administrador para gestionar usuarios."
+    });
+  }
+
+  next();
+};
+
 export {
-  protegerRuta
+  protegerRuta,
+  esAdmin
 };

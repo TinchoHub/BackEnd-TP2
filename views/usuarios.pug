@@ -1,0 +1,120 @@
+extends layout
+
+block contenido
+  .page-header
+    .page-header__info
+      .page-header__icon
+        svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2")
+          path(d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2")
+          circle(cx="9" cy="7" r="4")
+          path(d="M23 21v-2a4 4 0 0 0-3-3.87")
+          path(d="M16 3.13a4 4 0 0 1 0 7.75")
+      div
+        h2 Usuarios del Sistema
+        p Gestión de accesos, operadores y administradores de AutoBox
+    .page-header__actions
+      a.btn.btn--primary(href="/usuarios/nuevo") + Nuevo Usuario
+
+  if exito
+    .socket-toast(style="position: static; margin-bottom: 20px; background: #027a48; border-color: #12b76a;")
+      p= exito
+
+  if query && query.error === 'autodelete'
+    .socket-toast(style="position: static; margin-bottom: 20px; background: #b42318; border-color: #ff8a3d;")
+      p No podés eliminar tu propia cuenta de administrador en sesión activa.
+
+  if usuarios && usuarios.length > 0
+    .tabla-contenedor
+      table.tabla
+        thead
+          tr
+            th Nombre Completo
+            th Nombre de Usuario
+            th Rol
+            th Estado
+            th Fecha de Alta
+            th(style="text-align: center; width: 80px;") Acciones
+        tbody
+          each u in usuarios
+            tr
+              td
+                strong= u.nombre
+              td
+                code= u.username
+              td
+                span.badge(class=u.rol === 'admin' ? 'badge--admin' : 'badge--operador')
+                  = u.rol === 'admin' ? 'Administrador' : 'Operador'
+              td
+                span.status-indicator(class=u.activo ? 'status-indicator--activo' : 'status-indicator--inactivo')
+                  = u.activo ? 'Activo' : 'Inactivo'
+              td= new Date(u.createdAt).toLocaleDateString('es-AR')
+              td(style="text-align: center;")
+                if usuario && usuario._id.toString() !== u._id.toString()
+                  button.btn-icon-eliminar(
+                    type="button" 
+                    title="Eliminar usuario"
+                    onclick=`abrirModalEliminar('${u._id}', '${u.username}')`
+                    style="background: none; border: none; cursor: pointer; color: #f87171; padding: 6px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;"
+                  )
+                    svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18")
+                      polyline(points="3 6 5 6 21 6")
+                      path(d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2")
+                      line(x1="10" y1="11" x2="10" y2="17")
+                      line(x1="14" y1="11" x2="14" y2="17")
+                else
+                  span(title="Cuenta actual en uso" style="font-size: 11px; color: #64748b;") (Actual)
+  else
+    .empty-state
+      p No hay usuarios registrados aún en el sistema.
+      a.btn.btn--primary(href="/usuarios/nuevo" style="margin-top: 12px; display: inline-block;") Crear el primer usuario
+
+  //- Contenedor Modal personalizado con paleta AutoBox
+  .modal-overlay#modalConfirmarEliminar(onclick="clickFondo(event)")
+    .modal-card
+      .modal-header
+        .modal-header__icon
+          svg(viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20")
+            polyline(points="3 6 5 6 21 6")
+            path(d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2")
+            line(x1="10" y1="11" x2="10" y2="17")
+            line(x1="14" y1="11" x2="14" y2="17")
+        h3 ¿Eliminar usuario?
+      
+      .modal-body
+        p
+          | Estás por dar de baja al usuario 
+          strong#modalUsuarioTexto
+          | . Esta acción eliminará permanentemente sus credenciales de acceso al taller.
+      
+      form#formEliminarUsuario(method="POST" action="")
+        .modal-actions
+          button.btn.btn--secondary(type="button" onclick="cerrarModalEliminar()") Cancelar
+          button.btn.btn--danger(type="submit") Confirmar baja
+
+  script.
+    const modal = document.getElementById('modalConfirmarEliminar');
+    const formEliminar = document.getElementById('formEliminarUsuario');
+    const textoUsuario = document.getElementById('modalUsuarioTexto');
+
+    function abrirModalEliminar(id, username) {
+      formEliminar.action = `/usuarios/${id}/eliminar`;
+      textoUsuario.textContent = `"${username}"`;
+      modal.classList.add('is-active');
+    }
+
+    function cerrarModalEliminar() {
+      modal.classList.remove('is-active');
+    }
+
+    function clickFondo(e) {
+      if (e.target === modal) {
+        cerrarModalEliminar();
+      }
+    }
+
+    // Permitir cerrar con la tecla Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('is-active')) {
+        cerrarModalEliminar();
+      }
+    });

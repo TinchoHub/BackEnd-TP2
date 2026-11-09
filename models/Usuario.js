@@ -38,7 +38,7 @@ const usuarioSchema = new mongoose.Schema(
 
 // Middleware pre-save: Hashear la contraseña antes de guardar si fue modificada
 usuarioSchema.pre('save', async function () {
-    if (!this.isModified('password')) return next();
+    if (!this.isModified('password')) return;
         const salt = await bcrypt.genSalt(10);
         this.password = await bcrypt.hash(this.password, salt);        
 });
